@@ -1,0 +1,72 @@
+---
+title: HW 1
+output: pdf_document
+---
+
+# Problem 5
+## Serial optimization
+We first note that $sin(x)^2 - cos(x)^2 = -cos(2x)$, which can be used to calculate "cos_val". Second, we leverage R's vectorization techniques for efficient computation of "cos_vals" and "v_mat". Specifically, when a vector is passed to the cosine function, R computes the cosine values for each element within the vector. Furthermore, when performing an element-wise product between a vector and a matrix, R broadcasts the vector to match the dimensions of the matrix.
+
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+myfunc <- function(v_s, i_v, iter)
+{
+  d_vals <- round(i_v %% 256)
+  cos_vals <- -cos(2 * d_vals)
+  v_mat <- v_s * cos_vals;
+  return(v_mat/cos(iter))
+}
+```
+
+We are able to reduce the user running time from 104.307 seconds to 1.023 seconds.
+
+## Parallel computing
+For parallel computing, we use the "doMC" package to register the requested cores, and use "foreach" package to assign jobs for each worker.
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+library(doMC)
+library(foreach)
+
+## register workers
+args = commandArgs(trailingOnly=TRUE)
+num_cores <- as.numeric(args[1])
+registerDoMC(num_cores)
+print(sprintf("Started %s workers", num_cores))
+```
+
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+## Use foreach and print time
+ptm <- proc.time()
+Res <- foreach(i = 1:num_cores, .combine = c) %dopar% {
+  Res_worker <- NULL
+  for (iter in seq(i, N_tot, by = num_cores)){
+    res_mat <- myfunc(vd_s, vi_v, iter)
+    Res_worker = c(Res_worker, mean(res_mat))
+  }
+  Res_worker
+}
+print(proc.time() - ptm)
+```
+
+We repeat this procedure n times, where n is chosen from {1, 4, 8, 16, 32, 64}. We plot the running time plot below.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(1:6, c(1.193, 0.324, 0.999, 1.106, 1.415, 0.689),
+  type="l", xlab='number of cores', ylab = "running time", xaxt = "n")
+axis(1, at=1:6, labels=c(1, 4, 8, 16, 32, 64))
+```
+
+# Problem 6
+```{python eval=FALSE, python.reticulate = FALSE}
+import numpy as np
+mat = np.loadtxt('Mat.dat')
+np.savetxt("Mat_T.dat", mat.T)
+
+print(np.mean(mat[:, 0]))
+print(np.mean(mat[:, 2]))
+```
+0.04475862857142858, 0.620249032857143
+
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+mat_t <- as.matrix(read.table("Mat_T.dat"))
+mean(mat_t[1, ])
+mean(mat_t[3, ])
+```
+0.04475863, 0.620249
