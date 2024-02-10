@@ -3,6 +3,89 @@ title: HW 1
 output: pdf_document
 ---
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(raster)
+```
+
+# Problem 1
+```{r message=FALSE, warning=FALSE}
+N_seq <- seq(100, 2000, 100)
+cpu_time <- matrix(NA, nrow = length(N_seq), ncol = 2)
+for (i in seq_along(N_seq)) {
+  ## direct use solve
+  M <- 10; sigma <- 0.2
+  N <- N_seq[i]
+  K <- matrix(rnorm(N*M), nrow=N, ncol=M)
+  Sigma <- sigma*diag(rep(1,N))+K%*%t(K)
+  t1 <- system.time(solve(Sigma))
+  cpu_time[i, 1] <- t1[3]
+
+  ## Sherman-Morrison-Woodbury identity
+  I <- diag(rep(1,N))
+  C <- sigma * diag(rep(1,M))
+  ptm <- proc.time()
+  Sigma_inv <- (1/sigma) * (I - K %*% solve(C + t(K)%*%K) %*% t(K))
+  t2 <- proc.time() - ptm
+  cpu_time[i, 2] <- t2[3]
+}
+```
+
+```{r message=FALSE, warning=FALSE}
+plot(seq_along(N_seq), cpu_time[, 1],
+  type = "l", col = "red",
+  xlab = "N", ylab = "CPU time (s)")
+lines(seq_along(N_seq), cpu_time[, 2], col = "blue")
+legend("topleft", legend = c("direct use solve",
+  "Sherman-Morrison-Woodbury identity"), col = c("red", "blue"), lty = 1)
+```
+
+# Problem 2
+```{r message=FALSE, warning=FALSE}
+GSE1000 <- read.csv("./GSE1000_series_matrix.csv")
+gse_data <- GSE1000[, 2:11]
+gse_data <- scale(gse_data, center = TRUE, scale = FALSE)
+```
+
+## (a)
+```{r message=FALSE, warning=FALSE}
+gse_svd <- svd(gse_data)
+gse_u <- gse_svd$u
+gse_d <- gse_svd$d
+gse_vt <- t(gse_svd$v)
+image(gse_vt, xlab = "Arrays", ylab = "Eigenvalues")
+```
+
+## (b)
+```{r message=FALSE, warning=FALSE}
+p <- gse_d^2 / sum(gse_d^2)
+p <- sort(p, decreasing = FALSE)
+barplot(p, names.arg = 1:10, horiz = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+entropy <- -1/log(10) * sum(p * log(p))
+entropy
+```
+
+## (c)
+```{r message=FALSE, warning=FALSE}
+plot(1:10, gse_vt[1, ],
+  col = "red",
+  type = "l",
+  ylim = c(-1, 1))
+lines(1:10, gse_vt[2, ], col = "blue")
+abline(h = 0)
+```
+
+## (d)
+```{r message=FALSE, warning=FALSE}
+plot(raster(gse_u), xlab = "Arrays", ylab = "Genes")
+```
+
+# Problem 3
+
+# Problem 4
+
 # Problem 5
 ## Serial optimization
 We first note that $sin(x)^2 - cos(x)^2 = -cos(2x)$, which can be used to calculate "cos_val". Second, we leverage R's vectorization techniques for efficient computation of "cos_vals" and "v_mat". Specifically, when a vector is passed to the cosine function, R computes the cosine values for each element within the vector. Furthermore, when performing an element-wise product between a vector and a matrix, R broadcasts the vector to match the dimensions of the matrix.
