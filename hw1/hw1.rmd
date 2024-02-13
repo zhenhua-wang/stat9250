@@ -103,7 +103,35 @@ plot(raster(gse_u), xlab = "Arrays", ylab = "Genes")
 ```
 
 # Problem 3
+```{r}
+## Problem 3
+N <- seq(20, 1000, 100)
+direct_est <- rgamma(20, shape = 3, scale = 7)
+direct_est <- c()
+mse_MLE <- c()
+bias_MLE <- c()
+mse_M <- c()
+bias_M <- c()
+alpha_MLE <- c()
+beta_MLE <- c()
+alpha_M <- c()
+beta_M <- c()
+## Estimation using different methods
 
+for (i in 1:length(N)){
+  direct_est <- rgamma(N[i], shape = 3, scale = 7)
+  ## Estimation MLE method
+  mu <- mean(direct_est)
+  sigma2 <- var(direct_est)
+  s <- log(mu) - mean(log(direct_est))
+  alpha_MLE[i] <- (3 - s + sqrt((s-3)*(s-3) + 24*s))/(12 * s)
+  beta_MLE[i] <- mu/alpha_MLE[i]
+  
+  ## Estimation Moment method
+  alpha_M[i] <- mu*mu/sigma2
+  beta_M[i] <- sigma2/mu
+}
+```
 # Problem 4
 ```{r message=FALSE, warning=FALSE}
 mcmc <- function(N, m, func) {
