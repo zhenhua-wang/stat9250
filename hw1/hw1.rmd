@@ -30,7 +30,7 @@ for (i in seq_along(N_seq)) {
 }
 ```
 
-``` {r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 alg_one <- function(N, M){
   y = N*N*N + 2*N*M + N*N
   return(y)
