@@ -85,6 +85,63 @@ plot(raster(gse_u), xlab = "Arrays", ylab = "Genes")
 # Problem 3
 
 # Problem 4
+```{r message=FALSE, warning=FALSE}
+mcmc <- function(N, m, func) {
+  sample_mcmc <- c()
+  for (i in 1:N) {
+    R <- matrix(rnorm(m*m, 0, 1), m, m)
+    Sigma <- R %*% t(R)
+    sample_mcmc <- c(sample_mcmc, func(Sigma))
+  }
+  return(list(sample = sample_mcmc, se = sd(sample_mcmc) / sqrt(N)))
+}
+```
+
+## (a)
+```{r message=FALSE, warning=FALSE}
+trace <- function(X) sum(diag(X))
+
+## m = 100
+trace_mcmc <- mcmc(1000, 100, trace)
+hist(trace_mcmc$sample)
+print(trace_mcmc$se)
+
+## m = 1000
+trace_mcmc <- mcmc(1000, 1000, trace)
+hist(trace_mcmc)
+print(trace_mcmc$se)
+```
+
+## (b)
+```{r message=FALSE, warning=FALSE}
+max_eignval <- function(X) {
+  eigen(X)$values[1]
+}
+
+## m = 100
+eig_mcmc <- mcmc(1000, 100, max_eignval)
+hist(eig_mcmc$sample)
+print(eig_mcmc$se)
+
+## m = 1000
+eig_mcmc <- mcmc(1000, 1000, trace)
+hist(eig_mcmc)
+print(eig_mcmc$se)
+```
+
+## (c)
+```{r message=FALSE, warning=FALSE}
+eig_exp <- c()
+for (m in 1:100) {
+  eig_mcmc <- mcmc(1000, m, max_eignval)
+  eig_exp <- c(eig_exp, mean(eig_mcmc))
+  cat(m, "\r")
+}
+plot(1:100, eig_exp, type = "l")
+```
+
+## (d)
+
 
 # Problem 5
 ## Serial optimization
