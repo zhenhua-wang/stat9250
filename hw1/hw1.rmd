@@ -44,8 +44,10 @@ alg_two <- function(N, M){
 N <- seq(1, 100, 1)
 y1 <- alg_one(N = N, M = 10)
 y2 <- alg_two(N = N, M = 10)
-plot(N, y1, type ='l')
-abline(N, y2, col = 'red')
+plot(N, y1, type ='l', col = 'red', xlab = "N", ylab = "FLOPs")
+abline(N, y2, col = "blue")
+legend("topleft", legend = c("direct use solve",
+  "Sherman-Morrison-Woodbury identity"), col = c("red", "blue"), lty = 1)
 ```
 
 ```{r message=FALSE, warning=FALSE}
