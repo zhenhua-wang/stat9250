@@ -30,12 +30,8 @@ for (i in 1:N1){
 # Use foreach and print time
 ptm <- proc.time()
 Res <- foreach(i = 1:num_cores, .combine = c) %dopar% {
-  Res_worker <- NULL
-  for (iter in seq(i, N_tot, by = num_cores)){
-    res_mat <- myfunc(vd_s, vi_v, iter)
-    Res_worker = c(Res_worker, mean(res_mat))
-  }
-  Res_worker
+  res_mat <- myfunc(vd_s, vi_v, iter)
+  mean(res_mat)
 }
 print(proc.time() - ptm)
 
