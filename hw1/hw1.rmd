@@ -30,6 +30,24 @@ for (i in seq_along(N_seq)) {
 }
 ```
 
+``` {r message=FALSE, warning=FALSE}
+alg_one <- function(N, M){
+  y = N*N*N + 2*N*M + N*N
+  return(y)
+}
+
+alg_two <- function(N, M){
+  y = N*N + 2*N*M*M + N*N*M + M*M*M + M*M
+  return(y)
+}
+
+N <- seq(1, 100, 1)
+y1 <- alg_one(N = N, M = 10)
+y2 <- alg_two(N = N, M = 10)
+plot(N, y1, type ='l')
+abline(N, y2, col = 'red')
+```
+
 ```{r message=FALSE, warning=FALSE}
 plot(seq_along(N_seq), cpu_time[, 1],
   type = "l", col = "red",
