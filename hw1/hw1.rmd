@@ -9,7 +9,6 @@ library(tidyverse)
 library(doMC)
 library(foreach)
 ```
-```
 
 # Problem 1
 ```{r message=FALSE, warning=FALSE}
