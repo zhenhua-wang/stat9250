@@ -6,6 +6,9 @@ output: pdf_document
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(raster)
 library(tidyverse)
+library(doMC)
+library(foreach)
+```
 ```
 
 # Problem 1
@@ -163,12 +166,14 @@ df %>% group_by(n) %>%
 
 # Problem 4
 ```{r message=FALSE, warning=FALSE}
-mcmc <- function(N, m, func) {
-  sample_mcmc <- c()
-  for (i in 1:N) {
+mcmc <- function(N, m, func, num_cores = 4) {
+  ## register cores
+  registerDoMC(num_cores)
+  ## mcmc
+  sample_mcmc <- foreach(iter = 1:N, .combine = c) %dopar% {
     R <- matrix(rnorm(m*m, 0, 1), m, m)
     Sigma <- R %*% t(R)
-    sample_mcmc <- c(sample_mcmc, func(Sigma))
+    func(Sigma)
   }
   return(list(sample = sample_mcmc, se = sd(sample_mcmc) / sqrt(N)))
 }
