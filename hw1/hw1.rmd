@@ -189,7 +189,7 @@ print(trace_mcmc$se)
 
 ## m = 1000
 trace_mcmc <- mcmc(1000, 1000, trace)
-hist(trace_mcmc)
+hist(trace_mcmc$sample)
 print(trace_mcmc$se)
 ```
 
@@ -206,7 +206,7 @@ print(eig_mcmc$se)
 
 ## m = 1000
 eig_mcmc <- mcmc(1000, 1000, trace)
-hist(eig_mcmc)
+hist(eig_mcmc$sample)
 print(eig_mcmc$se)
 ```
 
