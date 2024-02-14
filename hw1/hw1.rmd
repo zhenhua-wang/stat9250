@@ -33,6 +33,17 @@ for (i in seq_along(N_seq)) {
 }
 ```
 
+## (a)
+```{r message=FALSE, warning=FALSE}
+plot(N_seq, cpu_time[, 1],
+  type = "l", col = "red",
+  xlab = "N", ylab = "CPU time (s)")
+lines(N_seq, cpu_time[, 2], col = "blue")
+legend("topleft", legend = c("direct use solve",
+  "Sherman-Morrison-Woodbury identity"), col = c("red", "blue"), lty = 1)
+```
+
+## (b)
 ```{r message=FALSE, warning=FALSE}
 alg_one <- function(N, M){
   y = N*N*N + 2*N*M + N*N
@@ -49,15 +60,6 @@ y1 <- alg_one(N = N, M = 10)
 y2 <- alg_two(N = N, M = 10)
 plot(N, y1, type ='l', col = 'red', xlab = "N", ylab = "FLOPs")
 abline(N, y2, col = "blue")
-legend("topleft", legend = c("direct use solve",
-  "Sherman-Morrison-Woodbury identity"), col = c("red", "blue"), lty = 1)
-```
-
-```{r message=FALSE, warning=FALSE}
-plot(seq_along(N_seq), cpu_time[, 1],
-  type = "l", col = "red",
-  xlab = "N", ylab = "CPU time (s)")
-lines(seq_along(N_seq), cpu_time[, 2], col = "blue")
 legend("topleft", legend = c("direct use solve",
   "Sherman-Morrison-Woodbury identity"), col = c("red", "blue"), lty = 1)
 ```
