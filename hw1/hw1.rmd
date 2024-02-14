@@ -258,9 +258,9 @@ Res <- foreach(i = 1:num_cores, .combine = c) %dopar% {
 print(proc.time() - ptm)
 ```
 
-We repeat this procedure n times, where n is chosen from {1, 4, 8, 16, 32, 64}. We plot the running time plot below.
+We repeat this procedure n times, where n is chosen from {1, 4, 8, 16, 32, 64}. We plot the running time plot below. We observe that as the number of cores increases from 1 to 4, the running time improves, due to parallelization. After the initial decrease, the running time increases to 1.474 at 16 cores, which might because of the communication costs or job assigning among cores. Lastly, the subsequent decreases might suggest that job assigning among 32 and 64 cores are efficient.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-plot(1:6, c(1.340, 1.047, 0.931, 1.491, 1.337, 0.965),
+plot(1:6, c(1.270, 0.668, 1.056, 1.474, 0.968, 0.733),
   type="l", xlab='number of cores', ylab = "running time", xaxt = "n")
 axis(1, at=1:6, labels=c(1, 4, 8, 16, 32, 64))
 ```
