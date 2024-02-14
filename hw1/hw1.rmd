@@ -215,7 +215,7 @@ print(eig_mcmc$se)
 eig_exp <- c()
 for (m in 1:100) {
   eig_mcmc <- mcmc(1000, m, max_eignval)
-  eig_exp <- c(eig_exp, mean(eig_mcmc))
+  eig_exp <- c(eig_exp, mean(eig_mcmc$sample))
   cat(m, "\r")
 }
 plot(1:100, eig_exp, type = "l")
