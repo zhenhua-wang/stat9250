@@ -84,7 +84,7 @@ image(gse_vt, xlab = "Arrays", ylab = "Eigenvalues")
 ```{r message=FALSE, warning=FALSE}
 p <- gse_d^2 / sum(gse_d^2)
 p <- sort(p, decreasing = FALSE)
-barplot(p, names.arg = 1:10, horiz = TRUE)
+barplot(p, names.arg = 1:10, horiz = TRUE, xlab = "Eigenexpression Fraction")
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -97,7 +97,7 @@ entropy
 plot(1:10, gse_vt[1, ],
   col = "red",
   type = "l",
-  ylim = c(-1, 1))
+  ylim = c(-1, 1), xlab = "Arrays", ylab = "Eigenexpression Level")
 lines(1:10, gse_vt[2, ], col = "blue")
 abline(h = 0)
 ```
