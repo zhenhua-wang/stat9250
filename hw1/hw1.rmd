@@ -14,9 +14,9 @@ library(foreach)
 ```{r message=FALSE, warning=FALSE}
 N_seq <- seq(100, 2000, 100)
 cpu_time <- matrix(NA, nrow = length(N_seq), ncol = 2)
+M <- 10; sigma <- 0.2
 for (i in seq_along(N_seq)) {
   ## direct use solve
-  M <- 10; sigma <- 0.2
   N <- N_seq[i]
   K <- matrix(rnorm(N*M), nrow=N, ncol=M)
   Sigma <- sigma*diag(rep(1,N))+K%*%t(K)
@@ -24,9 +24,9 @@ for (i in seq_along(N_seq)) {
   cpu_time[i, 1] <- t1[3]
 
   ## Sherman-Morrison-Woodbury identity
+  ptm <- proc.time()
   I <- diag(rep(1,N))
   C <- sigma * diag(rep(1,M))
-  ptm <- proc.time()
   Sigma_inv <- (1/sigma) * (I - K %*% solve(C + t(K)%*%K) %*% t(K))
   t2 <- proc.time() - ptm
   cpu_time[i, 2] <- t2[3]
@@ -34,6 +34,11 @@ for (i in seq_along(N_seq)) {
 ```
 
 ## (a)
+
+We first write $\Sigma = \sigma I + KK^T$ using the Sherman-Morrison-Woodbury identity and simplify the equation further. 
+$$(\sigma I + KK^T)^{-1} = 1/\sigma(I_{N\times N} - K(\sigma I_{M\times M} + K^TK)^{-1}K^T)$$
+ We look at the computation time of the two methods in the figure below where we change $N$ from 100 to 2000. Sherman-Morrison-Woodbury identity makes the inverse computation of a $M\times M$ matrix as oppossed to a inverse of $N\times N$ matrix. The figure clearly shows that the computation time has drastically reduced for large $N$. 
+ 
 ```{r message=FALSE, warning=FALSE}
 plot(N_seq, cpu_time[, 1],
   type = "l", col = "red",
@@ -44,14 +49,25 @@ legend("topleft", legend = c("direct use solve",
 ```
 
 ## (b)
+
+For the first algorithm the number of FLOPs is $N^3 + N^2(2M-1) + N^2$ and for the second algorithm FLOPs can be computed as below,
+- $\sigma I_{M\times M}$ needs $M^2$ FLOPs
+- $K^TK$ needs $M^2(2N-1)$ FLOPs
+- Sum of the above to needs $M^2$ FLOPs
+- Getting inverse of $M\times M $ matrix needs $M^3$ FLOPs
+- $(\sigma I_{M\times M} + K^TK)^{-1}K^T$ product needs $MN(2M-1)$ FLOPs
+- product of $K$ and above term needs $NM(2M-1)$ FLOPS
+- $I$ minus above term needs $N^2$ FLOPs
+- Division by $\sigma$ needs another $N^2$ FLOPS.
+Summing all the FLOPs gives $2M^2 + M^3 + 2N^2 + M^2(2N-1) + 2MN(2M-1)$
 ```{r message=FALSE, warning=FALSE}
 alg_one <- function(N, M){
-  y = N*N*N + 2*N*M + N*N
+  y = N*N*N + N*N*(2*M-1) + N*N
   return(y)
 }
 
 alg_two <- function(N, M){
-  y = N*N + 2*N*M*M + N*N*M + M*M*M + M*M
+  y = 2*M*M + M*M*M + 2*N*N + M*M*(2*N-1) + 2*M*N*(2*M-1)
   return(y)
 }
 
@@ -63,6 +79,10 @@ abline(N, y2, col = "blue")
 legend("topleft", legend = c("direct use solve",
   "Sherman-Morrison-Woodbury identity"), col = c("red", "blue"), lty = 1)
 ```
+
+## (c)
+
+Based on the figure in part 2 we can see that the number of FLOPs used for Sherman-Morrison-Woodbury algorithm is very small compared to the direct solve approach. Hence figure in part one makes sense because the computation time has reduced significantly in retrospect. Them main saving came from the fact that in algorithm our computation is in $O(M^3)$ while in algorithm 1 is in $O(N^2)$ which can make a significant difference when $M$ is much smaller than $N$. 
 
 # Problem 2
 ```{r message=FALSE, warning=FALSE}
@@ -227,11 +247,31 @@ plot(1:100, eig_exp, type = "l")
 $\text{O}(n^3)$, where n is the dimension of the matrix.
 
 # Problem 5
-## Serial optimization
+
+## (a)
+The slow code took 104.307 seconds to run on our computers.
+
+## (b)
 We first note that $sin(x)^2 - cos(x)^2 = -cos(2x)$, which can be used to calculate "cos_val". Second, we leverage R's vectorization techniques for efficient computation of "cos_vals" and "v_mat". Specifically, when a vector is passed to the cosine function, R computes the cosine values for each element within the vector. Furthermore, when performing an element-wise product between a vector and a matrix, R broadcasts the vector to match the dimensions of the matrix.
 
-```{r eval=FALSE, message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 myfunc <- function(v_s, i_v, iter)
+{
+  v_mat <- matrix(NA, nrow(v_s), ncol(v_s))
+  cos_iter <- cos(iter)
+  
+  for (i in 1:nrow(v_s))
+  {
+    for (j in 1:ncol(v_s))
+    {
+      d_val = round(i_v[i]%%256) 
+      v_mat[i, j] = v_s[i, j]*(sin(d_val)*sin(d_val)-cos(d_val)*cos(d_val))/cos_iter;
+    }
+  }
+  return(v_mat)
+}
+
+myfunc_new <- function(v_s, i_v, iter)
 {
   d_vals <- round(i_v %% 256)
   cos_vals <- -cos(2 * d_vals)
@@ -240,9 +280,50 @@ myfunc <- function(v_s, i_v, iter)
 }
 ```
 
-We are able to reduce the user running time from 104.307 seconds to 1.023 seconds.
+```{r message=FALSE, warning=FALSE}
+N1 <- 1e3; N2 <- 2e3; N_tot <- 64
+vi_v <- rep(NA, N1)
+vd_s <- matrix(NA, N1, N2)
 
-## Parallel computing
+set.seed(123)
+for (i in 1:N1){
+  vi_v[i] = i + rnorm(1, sd = sqrt(i)*0.01);
+  for (j in 1:N2)
+    vd_s[i,j] = j + i
+}
+Res <- rep(NA, N_tot)
+Res_new <- rep(NA, N_tot)
+
+# start benchmark
+ptm <- proc.time()
+
+# iterative test loop
+for (iter in 1:N_tot)
+{
+  res_mat <- myfunc(vd_s, vi_v, iter)
+  Res[iter] <- mean(res_mat)
+}
+
+proc.time() - ptm
+
+ptm <- proc.time()
+
+for (iter in 1:N_tot)
+{
+  res_mat <- myfunc_new(vd_s, vi_v, iter)
+  Res_new[iter] <- mean(res_mat)
+}
+
+proc.time() - ptm
+
+head(Res)
+head(Res_new)
+
+```
+
+We are able to reduce the user running time significantly from 104.307 seconds to 1.023 seconds. Output shows the times for the two methods. We compared the res vector from the two methods and they give the same answer as shown in the output. 
+
+## (c)
 For parallel computing, we use the "doMC" package to register the requested cores, and use "foreach" package to assign jobs for each worker.
 ```{r eval=FALSE, message=FALSE, warning=FALSE}
 library(doMC)
@@ -266,9 +347,9 @@ print(proc.time() - ptm)
 
 We repeat this procedure n times, where n is chosen from {1, 4, 8, 16, 32, 64}. We plot the running time plot below. We observe that as the number of cores increases from 1 to 4, the running time improves, due to parallelization. After the initial decrease, the running time increases to 1.474 at 16 cores, which might because of the communication costs or job assigning among cores. Lastly, the subsequent decreases might suggest that job assigning among 32 and 64 cores are efficient.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-plot(1:6, c(1.270, 0.668, 1.056, 1.474, 0.968, 0.733),
-  type="l", xlab='number of cores', ylab = "running time", xaxt = "n")
-axis(1, at=1:6, labels=c(1, 4, 8, 16, 32, 64))
+nodes <- c(1, 4, 8, 16, 32, 64)
+plot(nodes, c(1.270, 0.668, 1.056, 1.474, 0.968, 0.733),
+  type="l", xlab='number of cores', ylab = "running time")
 ```
 
 # Problem 6
@@ -288,3 +369,5 @@ mean(mat_t[1, ])
 mean(mat_t[3, ])
 ```
 0.04475863, 0.620249
+
+We can see that both methods give us the same result. 
