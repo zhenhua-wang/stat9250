@@ -237,13 +237,15 @@ trace <- function(X) sum(diag(X))
 
 ## m = 100
 trace_mcmc <- mcmc(1000, 100, trace)
-hist(trace_mcmc$sample, xlab = "Trace", main = "Histogram of trace for m = 100")
+trace_density <- density(trace_mcmc$sample)
+plot(trace_density, xlab = "Trace", main = "Histogram of trace for m = 100")
 print(sprintf("Standard error: %.2f, sample size: %d",
   trace_mcmc$se, 1000))
 
 ## m = 1000
 trace_mcmc <- mcmc(1000, 1000, trace)
-hist(trace_mcmc$sample, xlab = "Trace", main = "Histogram of trace for m = 1000")
+trace_density <- density(trace_mcmc$sample)
+plot(trace_density, xlab = "Trace", main = "Histogram of trace for m = 1000")
 print(sprintf("Standard error: %.2f, sample size: %d",
   trace_mcmc$se, 1000))
 ```
@@ -257,13 +259,15 @@ max_eignval <- function(X) {
 
 ## m = 100
 eig_mcmc <- mcmc(1000, 100, max_eignval)
-hist(eig_mcmc$sample, xlab = "Max eigenvalue", main = "Histogram of max eigenvalue for m = 100")
+eig_density <- density(eig_mcmc$sample)
+plot(eig_density, xlab = "Max eigenvalue", main = "Histogram of max eigenvalue for m = 100")
 print(sprintf("Standard error: %.2f, sample size: %d",
   eig_mcmc$se, 1000))
 
 ## m = 1000
 eig_mcmc <- mcmc(1000, 1000, trace)
-hist(eig_mcmc$sample, xlab = "Max eigenvalue", main = "Histogram of max eigenvalue for m = 1000")
+eig_density <- density(eig_mcmc$sample)
+hist(eig_density, xlab = "Max eigenvalue", main = "Histogram of max eigenvalue for m = 1000")
 print(sprintf("Standard error: %.2f, sample size: %d",
   eig_mcmc$se, 1000))
 ```
