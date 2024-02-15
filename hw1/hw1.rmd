@@ -310,3 +310,5 @@ mean(mat_t[1, ])
 mean(mat_t[3, ])
 ```
 0.04475863, 0.620249
+
+As the result showing, Python and R produces the same results.
