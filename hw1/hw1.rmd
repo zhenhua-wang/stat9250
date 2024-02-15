@@ -1,3 +1,4 @@
+B
 ---
 title: HW 1
 output: pdf_document
@@ -259,7 +260,7 @@ myfunc <- function(v_s, i_v, iter)
 {
   v_mat <- matrix(NA, nrow(v_s), ncol(v_s))
   cos_iter <- cos(iter)
-  
+   
   for (i in 1:nrow(v_s))
   {
     for (j in 1:ncol(v_s))
@@ -345,7 +346,29 @@ Res <- foreach(i = 1:num_cores, .combine = c) %dopar% {
 print(proc.time() - ptm)
 ```
 
-We repeat this procedure n times, where n is chosen from {1, 4, 8, 16, 32, 64}. We plot the running time plot below. We observe that as the number of cores increases from 1 to 4, the running time improves, due to parallelization. After the initial decrease, the running time increases to 1.474 at 16 cores, which might because of the communication costs or job assigning among cores. Lastly, the subsequent decreases might suggest that job assigning among 32 and 64 cores are efficient.
+We use the following shell script to repeat this procedure n times, where n is chosen from {1, 4, 8, 16, 32, 64}.
+
+```{shell eval=FALSE, message=FALSE, warning=FALSE}
+echo "### Starting at: $(date) ###"
+module purge
+module load openmpi
+module load miniconda3
+source activate py
+
+## Run the python script
+for n_workers in 1 4 8 16 32 64
+do
+    echo
+    echo "### Starting with $n_workers worker ###"
+    Rscript ~/Workspace/stat9250/hw1/q5_remote.r $n_workers
+    echo "### Ending with $n_workers worker ###"
+    echo
+done
+conda deactivate
+echo "### Ending at: $(date) ###"
+```
+
+We plot the running time plot below. We observe that as the number of cores increases from 1 to 4, the running time improves, due to parallelization. After the initial decrease, the running time increases to 1.474 at 16 cores, which might because of the communication costs or job assigning among cores. Lastly, the subsequent decreases might suggest that job assigning among 32 and 64 cores are efficient.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 nodes <- c(1, 4, 8, 16, 32, 64)
 plot(nodes, c(1.270, 0.668, 1.056, 1.474, 0.968, 0.733),
@@ -370,4 +393,8 @@ mean(mat_t[3, ])
 ```
 0.04475863, 0.620249
 
+<<<<<<< HEAD
 We can see that both methods give us the same result. 
+=======
+As the result showing, Python and R produces the same results.
+>>>>>>> 4b59e8a8a22b2f59cc31bc5cd90f605e77a54ba6
