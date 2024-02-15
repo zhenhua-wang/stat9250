@@ -216,7 +216,8 @@ hist(trace_mcmc$sample, xlab = "Trace", main = "Histogram of trace for m = 1000"
 print(sprintf("Standard error: %.2f, sample size: %d",
   trace_mcmc$se, 1000))
 ```
-
+$R = r_{{ij}}, i = 1, ..., n, j = 1, ..., n$
+then we have trace of $RR^T = \Sigma_{i,j}r_{ij}^2$ this is sum of $m^2$ $N(0,1)$, which is a chisq distribution with $m^2$ degrees of freedom. Then we have the expectation. $E(trace)=m^2$
 ## (b)
 ```{r message=FALSE, warning=FALSE}
 max_eignval <- function(X) {
