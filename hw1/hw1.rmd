@@ -50,24 +50,24 @@ legend("topleft", legend = c("direct use solve",
 
 ## (b)
 
-For the first algorithm the number of FLOPs is $N^3 + N^2(2M-1) + N^2$ and for the second algorithm FLOPs can be computed as below,
-- $\sigma I_{M\times M}$ needs $M^2$ FLOPs
-- $K^TK$ needs $M^2(2N-1)$ FLOPs
+For the first algorithm the number of FLOPs is $N^3 + N^2M + N^2$ and for the second algorithm FLOPs can be computed as below,
+- $\sigma*I$ needs $N^2$ FLOPs
+- $K^TK$ needs $MN^2$ FLOPs
 - Sum of the above to needs $M^2$ FLOPs
 - Getting inverse of $M\times M $ matrix needs $M^3$ FLOPs
-- $(\sigma I_{M\times M} + K^TK)^{-1}K^T$ product needs $MN(2M-1)$ FLOPs
-- product of $K$ and above term needs $NM(2M-1)$ FLOPS
+- $(\sigma I_{M\times M} + K^TK)^{-1}K^T$ product needs $2M^2N$ FLOPs
+- product of $K$ and above term needs $2N^2M$ FLOPS
 - $I$ minus above term needs $N^2$ FLOPs
 - Division by $\sigma$ needs another $N^2$ FLOPS.
-Summing all the FLOPs gives $2M^2 + M^3 + 2N^2 + M^2(2N-1) + 2MN(2M-1)$
+Summing all the FLOPs gives $M^2 + M^3 + 3N^2 + 2M^2N + 2N^2M$
 ```{r message=FALSE, warning=FALSE}
 alg_one <- function(N, M){
-  y = N*N*N + 2*N*M + N*N
+  y = N*N*N + 2*N*N*M + N*N
   return(y)
 }
 
 alg_two <- function(N, M){
-  y = N*N + 2*N*M*M + N*N*M + M*M*M + M*M
+  y = 3*N*N + 2*N*M*M + 3*N*N*M + M*M*M + M*M
   return(y)
 }
 
@@ -82,7 +82,7 @@ legend("topleft", legend = c("direct use solve",
 
 ## (c)
 
-Based on the figure in part 2 we can see that the number of FLOPs used for Sherman-Morrison-Woodbury algorithm is very small compared to the direct solve approach. Hence figure in part one makes sense because the computation time has reduced significantly in retrospect. Them main saving came from the fact that in algorithm our computation is in $O(M^3)$ while in algorithm 1 is in $O(N^2)$ which can make a significant difference when $M$ is much smaller than $N$.
+Based on the figure in part 2 we can see that the number of FLOPs used for Sherman-Morrison-Woodbury algorithm is very small compared to the direct solve approach. Hence figure in part one makes sense because the computation time has reduced significantly in retrospect. Them main saving came from the fact that in algorithm our computation is in $argmax[O(NM^2), O(M^3), O(N^2M)]$ while in algorithm 1 is in $O(N^3)$ which can make a significant difference when $M$ is much smaller than $N$.
 
 # Problem 2
 ```{r message=FALSE, warning=FALSE}
