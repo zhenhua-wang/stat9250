@@ -128,6 +128,32 @@ plot(raster(gse_u), xlab = "Arrays", ylab = "Genes")
 ```
 
 # Problem 3
+
+## Maximum Likelihood Estimation
+
+Let us consider the Gamma distribution with parameters defined as shape ($\alpha$) and scale ($\beta$). Then we can write the pdf of Gamma($\alpha,\beta$) as,
+
+$$f(x) = \frac{1}{\Gamma(\alpha)\beta}x^{\alpha-1}e^{-x/\beta}$$
+Based on the pdf we can write the log-likelihood function as,
+$$l(\alpha,\beta) = (\alpha - 1)\sum lnx_i - \sum\frac{x_i}{\beta} - N\alpha ln\beta - Nln\Gamma(\alpha)$$
+Now we fin dthe maximum likelihood estimator for $\beta$ by taking the derivative with respect to $\beta$ which gives,
+$$\hat{\beta} = \frac{\bar{x}}{\alpha}$$
+Finding MLE of $\alpha$ is not straight forward since there is no closed form solution for $\alpha$ hence we use the numerical approximation given in wikipedia.
+$$\hat{\alpha} \approx \frac{3-s+\sqrt{(s-3)^2+24s}}{12s}$$
+where $s = ln\bar{x} - \overline{lnx}$ where $\overline{lnx}$ is the sample mean of $ln x$ 
+
+## Method of Moment Estimation
+
+We can find $\alpha$ and $\beta$ based on the first and second moment of $X$. Let $\bar{X}_k = \frac{\sum_{i=1}^n x^k}{n}$. Then we can fin dthe moments to be,
+
+$$\bar{X}_1 = \alpha\beta, \quad \text{and} \quad \bar{X}_2 = \alpha^2\beta^2 + \alpha\beta^2$$
+Then we can write $\alpha$ and $\beta$ as,
+
+$$\hat{\alpha} = \frac{\bar{X}_1^2}{\bar{X}_2 - \bar{X}_1^2}, \quad \text{and} \quad \hat{\beta} = \frac{\bar{X}_2}{\bar{X}_1} - \bar{X}_1$$
+We also know that $\hat{\sigma} = \bar{X}_2 - \bar{X}_1^2$ and $\hat{\mu} = \bar{X}_1$. Which implies,
+
+$$\hat{\alpha} = \frac{\hat{\mu}^2}{\hat{\sigma^2}}, \quad \text{and} \quad \hat{\beta} = \frac{\hat{\sigma^2}}{\hat{\mu}}$$
+
 ```{r message=FALSE, warning=FALSE}
 ## Problem 3
 N <- 100
@@ -185,7 +211,12 @@ df %>% group_by(n) %>%
   scale_color_manual(values = c("red", "blue", "green", "purple"))
 ```
 
+Based on the Bias and MSE comparison for the two methods we can see that Bias and MSE is high when sample size is small but when sample size increases bias and MSE goes to zero. 
+
 # Problem 4
+
+Since the MCMC in this problem is 'embarrassingly' parallel, we use parallel computing. Especially this is advantageous when m is 1000 because computation time increases exponentially. 
+
 ```{r message=FALSE, warning=FALSE}
 mcmc <- function(N, m, func, num_cores = 4) {
   ## register cores
@@ -200,7 +231,7 @@ mcmc <- function(N, m, func, num_cores = 4) {
 }
 ```
 
-## (a)
+## (1)
 ```{r message=FALSE, warning=FALSE}
 trace <- function(X) sum(diag(X))
 
@@ -218,7 +249,7 @@ print(sprintf("Standard error: %.2f, sample size: %d",
 ```
 $R = r_{{ij}}, i = 1, ..., n, j = 1, ..., n$
 then we have trace of $RR^T = \Sigma_{i,j}r_{ij}^2$ this is sum of $m^2$ $N(0,1)$, which is a chisq distribution with $m^2$ degrees of freedom. Then we have the expectation. $E(trace)=m^2$
-## (b)
+## (2)
 ```{r message=FALSE, warning=FALSE}
 max_eignval <- function(X) {
   eigen(X)$values[1]
@@ -237,7 +268,7 @@ print(sprintf("Standard error: %.2f, sample size: %d",
   eig_mcmc$se, 1000))
 ```
 
-## (c)
+## (3)
 We plot the approximate expected value of largest eigenvalue, versus m, which m is chosen from 1 to 100. The largest m value we used is 100.
 ```{r message=FALSE, warning=FALSE}
 eig_exp <- c()
@@ -250,7 +281,7 @@ for (m in m_list) {
 plot(m_list, eig_exp, type = "l", xlab = "m", ylab = "expected value of largest eigenvalue")
 ```
 
-## (d)
+## (4)
 $\text{O}(n^3)$, where n is the dimension of the matrix.
 
 # Problem 5
