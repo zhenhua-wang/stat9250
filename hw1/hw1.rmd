@@ -322,12 +322,10 @@ for (iter in 1:N_tot)
 
 proc.time() - ptm
 
-head(Res)
-head(Res_new)
-
+all(Res - Res_new < 1e-10)
 ```
 
-We are able to reduce the user running time significantly from 104.307 seconds to 1.023 seconds. Output shows the times for the two methods. We compared the res vector from the two methods and they give the same answer as shown in the output.
+We are able to reduce the user running time significantly from 104.307 seconds to 1.023 seconds. Output shows the times for the two methods. We check the equality of these two results by showing their difference is less than a small threshold value.
 
 ## (c)
 For parallel computing, we use the "doMC" package to register the requested cores, and use "foreach" package to assign jobs for each worker.
