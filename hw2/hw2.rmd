@@ -1,0 +1,10 @@
+---
+title: Homework 2
+author: Zhenhua Wang
+output: pdf_document
+---
+
+# Question 1
+```{r message=FALSE, warning=FALSE}
+
+```
