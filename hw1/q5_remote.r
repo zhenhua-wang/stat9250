@@ -12,8 +12,8 @@ myfunc <- function(v_s, i_v, iter)
 {
   d_vals <- round(i_v %% 256)
   cos_vals <- -cos(2 * d_vals)
-  v_mat <- v_s * cos_vals;
-  return(v_mat/cos(iter))
+  v_mat <- v_s * cos_vals cos(iter)
+  return(v_mat)
 }
 
 N1 <- 1e3; N2 <- 2e3; N_tot <- 64
