@@ -1,16 +1,17 @@
+import os, ctypes
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate as si
+from scipy import LowLevelCallable
+from hw2.q1_integrand import integrand, integrand_transformed
 
-def normal_density(eps, tau):
-    return np.exp(-eps*eps/(2*tau*tau))/(tau*np.sqrt(2*np.pi))
+lib = ctypes.CDLL(os.path.abspath('./hw2/q1.so'))
 
-def integrand(eps, x, delta, tau):
-    return (1 - (delta / (2*delta - 1)) * (x - eps)**(-(1 - delta) / delta) +
-            ((1 - delta) / (2*delta - 1)) * (x - eps)**-1) * \
-            normal_density(eps, tau)
+lib.integrand.restype = ctypes.c_double
+lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
+integrand_cpp = LowLevelCallable(lib.integrand)
 
-def F(x, delta, tau, epsabs=1.49e-13, epsrel=1.49e-14):
+def F(x, delta, tau, epsabs=1.49e-14, epsrel=1.49e-15):
     integral = si.quad(integrand, a=-np.inf, b=x-1,
                        args=(x, delta, tau),
                        epsabs=epsabs, epsrel=epsrel)
