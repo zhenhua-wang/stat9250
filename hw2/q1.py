@@ -6,14 +6,14 @@ from scipy import LowLevelCallable
 from hw2.q1_integrand import integrand, integrand_transformed
 
 # load c++ integrand without gsl
-lib = ctypes.CDLL(os.path.abspath('./hw2/q1.so'))
+lib = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand.so'))
 lib.integrand.restype = ctypes.c_double
 lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
 integrand_cpp = LowLevelCallable(lib.integrand)
 
 # integrate using scipy
 def F(x, delta, tau, epsabs=1.49e-14, epsrel=1.49e-15):
-    integral = si.quad(integrand, a=-np.inf, b=x-1,
+    integral = si.quad(integrand_cpp, a=-np.inf, b=x-1,
                        args=(x, delta, tau),
                        epsabs=epsabs, epsrel=epsrel)
     return integral[0]
