@@ -5,12 +5,13 @@ from scipy import integrate as si
 from scipy import LowLevelCallable
 from hw2.q1_integrand import integrand, integrand_transformed
 
+# load c++ integrand without gsl
 lib = ctypes.CDLL(os.path.abspath('./hw2/q1.so'))
-
 lib.integrand.restype = ctypes.c_double
 lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
 integrand_cpp = LowLevelCallable(lib.integrand)
 
+# integrate using scipy
 def F(x, delta, tau, epsabs=1.49e-14, epsrel=1.49e-15):
     integral = si.quad(integrand, a=-np.inf, b=x-1,
                        args=(x, delta, tau),
@@ -19,6 +20,7 @@ def F(x, delta, tau, epsabs=1.49e-14, epsrel=1.49e-15):
 
 F_vec = np.vectorize(F)
 
+# plot
 X_vals1 = np.linspace(-100, 100, num=2000)
 X_vals2 = np.linspace(1000, 10000, num=2000)
 tau = np.sqrt(10)
