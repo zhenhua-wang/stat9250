@@ -13,7 +13,7 @@ integrand_cpp = LowLevelCallable(lib.integrand)
 
 # integrate using scipy
 def F(x, delta, tau, epsabs=1.49e-14, epsrel=1.49e-15):
-    integral = si.quad(integrand_cpp, a=-np.inf, b=x-1,
+    integral = si.quad(integrand, a=-np.inf, b=x-1,
                        args=(x, delta, tau),
                        epsabs=epsabs, epsrel=epsrel)
     return integral[0]
