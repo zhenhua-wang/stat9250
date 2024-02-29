@@ -4,7 +4,15 @@ author: Zhenhua Wang
 output: pdf_document
 ---
 
-# Question 1
+# Problem 1
+$$
+1-F(x) = \int_{x-1}^\infty \phi_{\tau}(\epsilon)d\epsilon + \int_{-\infty}^{x-1}\{ \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} - \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon
+$$
+
+$$
+F(x) = 1 - \int_{x-1}^\infty \phi_{\tau}(\epsilon)d\epsilon - \int_{-\infty}^{x-1}\{ \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} - \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon
+$$
+
 ```{r message=FALSE, warning=FALSE}
 
 ```
