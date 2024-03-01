@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate as si
 from scipy import LowLevelCallable
-# from hw2.q1_integrand import integrand, integrand_transformed
+from hw2.q1_integrand import integrand, integrand_transformed
 
 # load c++ integrand without gsl
-lib = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand.so'))
+lib = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand_cpp.so'))
 lib.integrand.restype = ctypes.c_double
 lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
 integrand_cpp = LowLevelCallable(lib.integrand)
