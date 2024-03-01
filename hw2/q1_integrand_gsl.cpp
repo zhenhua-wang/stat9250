@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_integration.h>
 #include <math.h>
@@ -37,8 +38,21 @@ extern "C" {
     F.function = &integrand;
     F.params = &params;
 
-    err = gsl_integration_qags(&F, -1000000.0, x-1.0,
-                               1.49e-8, 1.49e-9, 1e4,
+    double sig_pts[2];
+    if (x-1 <= -100) {
+      sig_pts[0] = x - 3;
+      sig_pts[1] = x - 2;
+    } else if (x-1 <= 100) {
+      sig_pts[0] = -100;
+      sig_pts[1] = x - 2;
+    } else {
+      sig_pts[0] = -10;
+      sig_pts[1] = 100;
+    }
+    double pts[4] = {-1000000.0, sig_pts[0], sig_pts[1], x-1.0};
+
+    err = gsl_integration_qagp(&F, pts, 4,
+                               1.49e-8, 1.49e-9, 50,
                                w, &result,&error);
     // Error handling: decrease epsabs if diverging
     if (err == GSL_EDIVERGE) {

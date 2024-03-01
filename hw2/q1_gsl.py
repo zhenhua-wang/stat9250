@@ -1,7 +1,6 @@
 import os, ctypes
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import LowLevelCallable
 
 lib_1 = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand_cpp_gsl.so'))
 

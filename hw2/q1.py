@@ -16,7 +16,7 @@ def F(x, delta, tau, epsabs=1.49e-7, epsrel=1.49e-8):
     integral = si.quad(integrand_cpp, a=-1e6, b=x-1,
                        args=(x, delta, tau),
                        epsabs=epsabs, epsrel=epsrel,
-                       points=[-10, 200])
+                       points=[-100, 200])
     return integral[0]
 
 F_vec = np.vectorize(F)
