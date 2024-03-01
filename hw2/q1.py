@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate as si
 from scipy import LowLevelCallable
-from hw2.q1_integrand import integrand, integrand_transformed
+# from hw2.q1_integrand import integrand, integrand_transformed
 
 # load c++ integrand without gsl
 lib = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand.so'))
@@ -12,10 +12,11 @@ lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
 integrand_cpp = LowLevelCallable(lib.integrand)
 
 # integrate using scipy
-def F(x, delta, tau, epsabs=1.49e-14, epsrel=1.49e-15):
-    integral = si.quad(integrand, a=-np.inf, b=x-1,
+def F(x, delta, tau, epsabs=1.49e-7, epsrel=1.49e-8):
+    integral = si.quad(integrand_cpp, a=-1e6, b=x-1,
                        args=(x, delta, tau),
-                       epsabs=epsabs, epsrel=epsrel)
+                       epsabs=epsabs, epsrel=epsrel,
+                       points=[-100, 100])
     return integral[0]
 
 F_vec = np.vectorize(F)
