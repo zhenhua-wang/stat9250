@@ -9,7 +9,7 @@ def integrand(eps, x, delta, tau):
             normal_density(eps, tau)
 
 def integrand_transformed(t, x, delta, tau):
-    log_t = np.log(t)
-    return (1 - (delta / (2*delta - 1)) * (1 - log_t)**(-(1 - delta) / delta) +
-            ((1 - delta) / (2*delta - 1)) * (1 - log_t)**-1) * \
-            normal_density(log_t + x - 1, tau) / t
+    t_inv = 1/t
+    return (t_inv*t_inv - (delta / (2*delta - 1)) * t_inv**(1 / delta - 3) +
+            ((1 - delta) / (2*delta - 1)) * t_inv) * \
+            normal_density(x - t_inv, tau)
