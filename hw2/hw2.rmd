@@ -71,7 +71,7 @@ x_vec <- seq(1e-5, 60, length.out = N)
 true_dens <- true_density(x_vec)
 prop_dens <- proposal_density(x_vec)
 print(sprintf("sup f(x)/q(x) is approximate to %.3f", max(true_dens / prop_dens)))
-K <- 30
+K <- 15
 res <- rejection_sampler(N, K = K,
   true_func = true_density,
   prop_func = proposal_density)
