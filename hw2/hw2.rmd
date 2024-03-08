@@ -70,7 +70,7 @@ N <- 100000
 x_vec <- seq(1e-5, 60, length.out = N)
 true_dens <- true_density(x_vec)
 prop_dens <- proposal_density(x_vec)
-K <- max(true_dens / prop_dens)
+K <- ceiling(max(true_dens / prop_dens))
 res <- rejection_sampler(N, K = K,
   true_func = true_density,
   prop_func = proposal_density)
