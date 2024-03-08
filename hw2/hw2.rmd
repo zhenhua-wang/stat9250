@@ -38,7 +38,7 @@ proposal_density <- function(x, quantile = FALSE) {
   if (quantile) {
     -log(1 - x) / 0.09
   } else {
-    0.05 * exp(-0.09 * x)
+    0.09 * exp(-0.09 * x)
   }
 }
 
@@ -61,7 +61,6 @@ rejection_sampler <- function(N, K, true_func, prop_func) {
     }
     res[1, i] <- exp_var
     res[2, i] <- counter
-    cat(i, "\r")
   }
   return(res)
 }
@@ -83,5 +82,8 @@ hist(samples, breaks = 1000, freq = FALSE, border = "lightblue")
 curve(true_density, from = 1e-5, to = 60,
   n = 1000, add = TRUE, col = "red", lty = 3)
 ```
+
+# Problem 3
+
 
 # Appendix
