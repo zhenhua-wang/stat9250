@@ -16,3 +16,72 @@ $$
 ```{r message=FALSE, warning=FALSE}
 
 ```
+
+# Problem 2
+\begin{align*}
+f(x; \theta)
+&= \sqrt{\frac{1}{4\pi}} \frac{\text{exp}(-\frac{1}{4x} - \theta x)}{x^{3/2} \text{exp}(-\sqrt{\theta})} \\
+&= \frac{\text{exp}(-\frac{1}{4x} - \theta x +\sqrt{\theta})}{4\pi x^{3/2}}
+\end{align*}
+
+Proposal distribution
+$$
+q(x) = 0.09 e^{-0.09x}
+$$
+
+```{r message=FALSE, warning=FALSE}
+true_density <- function(x, theta = 0.1) {
+  exp(-1/(4*x) - theta*x + sqrt(theta)) / (sqrt(4*pi) * x^(3/2))
+}
+
+proposal_density <- function(x, quantile = FALSE) {
+  if (quantile) {
+    -log(1 - x) / 0.09
+  } else {
+    0.05 * exp(-0.09 * x)
+  }
+}
+
+rejection_sampler <- function(N, K, true_func, prop_func) {
+  res <- matrix(NA, 2, N)
+  for (i in 1:N) {
+    # Generate variable from proposal distribution
+    U <- runif(1)
+    exp_var <- prop_func(U, TRUE)
+    counter <- 1
+    # Evaluate ratio
+    ratio <- true_func(exp_var) / (K * prop_func(exp_var))
+    while (runif(1) > ratio) {
+      # Generate variable from proposal distribution
+      U <- runif(1)
+      exp_var <- prop_func(U, TRUE)
+      counter <- counter + 1
+      # Update ratio
+      ratio <- true_func(exp_var) / (K * prop_func(exp_var))
+    }
+    res[1, i] <- exp_var
+    res[2, i] <- counter
+    cat(i, "\r")
+  }
+  return(res)
+}
+
+## Compute rejection factor K
+N <- 100000
+x_vec <- seq(1e-5, 60, length.out = N)
+true_dens <- true_density(x_vec)
+prop_dens <- proposal_density(x_vec)
+K <- max(true_dens / prop_dens)
+res <- rejection_sampler(N, K = K,
+  true_func = true_density,
+  prop_func = proposal_density)
+samples <- res[1, ]
+```
+
+```{r message=FALSE, warning=FALSE}
+hist(samples, breaks = 1000, freq = FALSE, border = "lightblue")
+curve(true_density, from = 1e-5, to = 60,
+  n = 1000, add = TRUE, col = "red", lty = 3)
+```
+
+# Appendix
