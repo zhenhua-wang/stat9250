@@ -34,30 +34,30 @@ true_density <- function(x, theta = 0.1) {
   exp(-1/(4*x) - theta*x + sqrt(theta)) / (sqrt(4*pi) * x^(3/2))
 }
 
-proposal_density <- function(x, quantile = FALSE) {
-  if (quantile) {
-    -log(1 - x) / 0.09
-  } else {
-    0.09 * exp(-0.09 * x)
-  }
+proposal_density <- function(x) {
+  0.09 * exp(-0.09 * x)
 }
 
-rejection_sampler <- function(N, K, true_func, prop_func) {
+proposal_quantile <- function(x) {
+  -log(1 - x) / 0.09
+}
+
+rejection_sampler <- function(N, K, true_dens, prop_dens, prop_quan) {
   res <- matrix(NA, 2, N)
   for (i in 1:N) {
     # Generate variable from proposal distribution
     U <- runif(1)
-    exp_var <- prop_func(U, TRUE)
+    exp_var <- prop_quan(U)
     counter <- 1
     # Evaluate ratio
-    ratio <- true_func(exp_var) / (K * prop_func(exp_var))
+    ratio <- true_dens(exp_var) / (K * prop_dens(exp_var))
     while (runif(1) > ratio) {
       # Generate variable from proposal distribution
       U <- runif(1)
-      exp_var <- prop_func(U, TRUE)
+      exp_var <- prop_quan(U)
       counter <- counter + 1
       # Update ratio
-      ratio <- true_func(exp_var) / (K * prop_func(exp_var))
+      ratio <- true_dens(exp_var) / (K * prop_dens(exp_var))
     }
     res[1, i] <- exp_var
     res[2, i] <- counter
@@ -72,19 +72,22 @@ true_dens <- true_density(x_vec)
 prop_dens <- proposal_density(x_vec)
 print(sprintf("sup f(x)/q(x) is approximate to %.3f", max(true_dens / prop_dens)))
 K <- 15
+## sample
+set.seed(5)
 res <- rejection_sampler(N, K = K,
-  true_func = true_density,
-  prop_func = proposal_density)
+  true_dens = true_density,
+  prop_dens = proposal_density,
+  prop_quan = proposal_quantile)
 samples <- res[1, ]
-```
-
-```{r message=FALSE, warning=FALSE}
+## plot
 hist(samples, breaks = 1000, freq = FALSE, border = "lightblue")
 curve(true_density, from = 1e-5, to = 60,
   n = 1000, add = TRUE, col = "red", lty = 3)
 ```
 
 # Problem 3
+```{r message=FALSE, warning=FALSE}
 
+```
 
 # Appendix
