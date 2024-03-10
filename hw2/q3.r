@@ -57,19 +57,25 @@ V <- V2
 sample_size <- 10000
 samples <- random_walk_metropolis(true_dens, prop_func1, V, sample_size, 0.5)
 plot(1:sample_size, apply(samples, 1, sum),
-  type="l", col="blue", xlab="iteration", ylab="N(X)")
-print(sprintf("Probability of diagonal is all 1's: %.3f",
-  mean(apply(samples, 1, diag_all_one))))
+  type = "l", col = "blue", xlab = "iteration", ylab = "N(X)"
+)
+print(sprintf(
+  "Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))
+))
 
 samples <- random_walk_metropolis(true_dens, prop_func1, V, sample_size, 1)
 plot(1:sample_size, apply(samples, 1, sum),
-  type="l", col="blue", xlab="iteration", ylab="N(X)")
-print(sprintf("Probability of diagonal is all 1's: %.3f",
-  mean(apply(samples, 1, diag_all_one))))
+  type = "l", col = "blue", xlab = "iteration", ylab = "N(X)"
+)
+print(sprintf(
+  "Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))
+))
 
 ## * MH2
 prop_func2 <- function(X) {
-  idx <- sample(16, 1, replace = T, prob = rep(1/16, 16))
+  idx <- sample(16, 1, replace = TRUE, prob = rep(1 / 16, 16))
   X[idx] <- rbinom(1, 1, 0.5)
   return(X)
 }
@@ -77,12 +83,18 @@ prop_func2 <- function(X) {
 sample_size <- 10000
 samples <- random_walk_metropolis(true_dens, prop_func2, V, sample_size, 0.5)
 plot(1:sample_size, apply(samples, 1, sum),
-  type="l", col="blue", xlab="iteration", ylab="N(X)")
-print(sprintf("Probability of diagonal is all 1's: %.3f",
-  mean(apply(samples, 1, diag_all_one))))
+  type = "l", col = "blue", xlab = "iteration", ylab = "N(X)"
+)
+print(sprintf(
+  "Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))
+))
 
 samples <- random_walk_metropolis(true_dens, prop_func2, V, sample_size, 1)
 plot(1:sample_size, apply(samples, 1, sum),
-  type="l", col="blue", xlab="iteration", ylab="N(X)")
-print(sprintf("Probability of diagonal is all 1's: %.3f",
-  mean(apply(samples, 1, diag_all_one))))
+  type = "l", col = "blue", xlab = "iteration", ylab = "N(X)"
+)
+print(sprintf(
+  "Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))
+))
