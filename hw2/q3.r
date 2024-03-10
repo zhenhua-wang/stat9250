@@ -19,8 +19,8 @@ V2 <- c(1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 print(sprintf("For example 2, D(X) = %i", sum(abs(M %*% V2))))
 
 ## * Metropolis-Hastings algorithm
-MH_all_at_once <- function(true_dens, prop_func,
-                           X_init, sample_size, lambda) {
+random_walk_metropolis <- function(true_dens, prop_func,
+                                   X_init, sample_size, lambda) {
   X <- X_init
   samples <- matrix(NA, sample_size, length(X_init))
   for (i in 1:sample_size) {
@@ -37,24 +37,33 @@ MH_all_at_once <- function(true_dens, prop_func,
   return(samples)
 }
 
-## * MH1
 true_dens <- function(V, lambda) {
   N_X <- sum(V)
   D_X <- sum(abs(M %*% V))
   0.8^N_X * 0.2^(16 - N_X) * exp(-lambda * D_X)
 }
 
+diag_all_one <- function(V) {
+  X <- matrix(V, 4, 4)
+  all(diag(X) == 1)
+}
+
+## * MH1
 prop_func1 <- function(X) {
   rbinom(16, 1, 0.5)
 }
 
-V <- V1
+V <- V2
 sample_size <- 10000
-samples <- MH_all_at_once(true_dens, prop_func1, V, sample_size, 0.5)
+samples <- random_walk_metropolis(true_dens, prop_func1, V, sample_size, 0.5)
 plot(1:sample_size, apply(samples, 1, sum), type="l", col="blue", xlab="iteration", ylab="N(X)")
+print(sprintf("Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))))
 
-samples <- MH_all_at_once(true_dens, prop_func1, V, sample_size, 1)
+samples <- random_walk_metropolis(true_dens, prop_func1, V, sample_size, 1)
 plot(1:sample_size, apply(samples, 1, sum), type="l", col="blue", xlab="iteration", ylab="N(X)")
+print(sprintf("Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))))
 
 ## * MH2
 prop_func2 <- function(X) {
@@ -63,10 +72,13 @@ prop_func2 <- function(X) {
   return(X)
 }
 
-V <- V1 
 sample_size <- 10000
-samples <- MH_all_at_once(true_dens, prop_func2, V, sample_size, 0.5)
+samples <- random_walk_metropolis(true_dens, prop_func2, V, sample_size, 0.5)
 plot(1:sample_size, apply(samples, 1, sum), type="l", col="blue", xlab="iteration", ylab="N(X)")
+print(sprintf("Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))))
 
-samples <- MH_all_at_once(true_dens, prop_func2, V, sample_size, 1)
+samples <- random_walk_metropolis(true_dens, prop_func2, V, sample_size, 1)
 plot(1:sample_size, apply(samples, 1, sum), type="l", col="blue", xlab="iteration", ylab="N(X)")
+print(sprintf("Probability of diagonal is all 1's: %.3f",
+  mean(apply(samples, 1, diag_all_one))))
