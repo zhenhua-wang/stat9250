@@ -86,8 +86,7 @@ curve(true_density, from = 1e-5, to = 60,
 ```
 
 # Problem 3
-```{r message=FALSE, warning=FALSE}
 
-```
+# Problem 4
 
 # Appendix
