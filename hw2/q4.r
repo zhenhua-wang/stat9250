@@ -1,7 +1,7 @@
 load("./hw2/glm dat.RData")
 
 tau <- sqrt(10)
-sample_size <- 10000
+sample_size <- 100000
 beta1 <- 0.1
 beta2 <- 0.1
 beta3 <- 0.1
