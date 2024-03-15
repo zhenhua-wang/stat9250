@@ -5,17 +5,25 @@ output: pdf_document
 ---
 
 # Problem 1
-$$
-1-F(x) = \int_{x-1}^\infty \phi_{\tau}(\epsilon)d\epsilon + \int_{-\infty}^{x-1}\{ \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} - \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon
-$$
+The objective of this problem is to approximate the CDF of $X$ based on the survival function below.First we solve for $F(x)$ as below,
 
 $$
-F(x) = 1 - \int_{x-1}^\infty \phi_{\tau}(\epsilon)d\epsilon - \int_{-\infty}^{x-1}\{ \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} - \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon
+\begin{align}
+F(x) &= 1 - \int_{x-1}^\infty \phi_{\tau}(\epsilon)d\epsilon - \int_{-\infty}^{x-1}\{ \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} - \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon \\
+&= \int_{-\infty}^{x-1} \{1 - \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} + \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon
+\end{align}
 $$
+We started the problem with defining the integrand as in the above equation in python and intergrating it in python as well. But this failed as we saw jumps in the CDF. Hence we transformed the integral such that the integral is in the finite interval $(0,1]$.
 
-```{r message=FALSE, warning=FALSE}
+Let $x-\epsilon = \frac{1}{t}$ so that $(-\infty,x-1]$ maps to $(0,1]$. Then the CDF $F(x)$ can be written as below,
 
-```
+$$
+\begin{align}
+F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg)^{-\frac{1-\delta}{\delta}} + \frac{1 - \delta}{2\delta - 1} \Bigg(\frac{1}{t}\Bigg)^{-1} \Bigg\}\frac{\phi_{\tau}(x-1/t)}{t^2}dt
+\end{align}
+$$
+Then we proceeded to use the three different ways to intergate this function in python and C++ using gsl. Complete code is submitted with the homework. The below figure shows the estimate of the CDF for the two different values of $\delta$ and for different ranges of $X$.
+![](q1plot.png){width="70%"}
 
 # Problem 2
 \begin{align*}
