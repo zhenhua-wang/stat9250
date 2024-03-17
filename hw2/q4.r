@@ -1,8 +1,8 @@
 load("./hw2/glm dat.RData")
 
 ## * Block MH
-block_MH <- function(sample_size, burning_size,
-                     X, Y,
+block_MH <- function(X, Y,
+                     sample_size, burning_size,
                      init_parameter, block_idxes,
                      logposterior, logproposal,
                      proposal_func) {
@@ -99,19 +99,21 @@ proposal <- function(parameter, idxes) {
 }
 
 ## * Init parameter
-beta1 <- - 1 / X[166]
-beta2 <- 1 / Y[166] - 1
-beta3 <- log((1 + beta1 - Y[166]) / (Y[166] * beta2))
-sig2 <- sd(Y)
+## pick median as init
+beta1 <- - 10#1 / X[166]
+beta2 <- 1#1 / Y[166] - 1
+beta3 <- 1#log((1 + beta1 - Y[166]) / (Y[166] * beta2))
+sig2 <- 1#sd(Y)
 
 ## * Tuning
 sample_size <- 200000
 burning_size <- 100000
 proposal_hyperparam <- list(
-  sd1 = 0.4, sd2 = 0.3, sd3 = 0.01, sd4 = 30)
+  sd1 = 0.4, sd2 = 0.1, sd3 = 0.1, sd4 = 5)
 res_mcmc <- block_MH(
-  sample_size = sample_size, burning_size = burning_size,
   X = X, Y = Y,
+  sample_size = sample_size,
+  burning_size = burning_size,
   init_parameter = c(beta1, beta2, beta3, sig2),
   block_idxes = list(1, 2, 3, 4),
   logposterior = logposterior,
@@ -132,8 +134,8 @@ mtext(paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
 
 apply(accept_mcmc, 2, mean)
 
-## par(mfrow = c(2, 2))
-## hist(theta_mcmc[, 1])
-## hist(theta_mcmc[, 2])
-## hist(theta_mcmc[, 3])
-## hist(theta_mcmc[, 4])
+par(mfrow = c(2, 2))
+hist(theta_mcmc[, 1])
+hist(theta_mcmc[, 2])
+hist(theta_mcmc[, 3])
+hist(theta_mcmc[, 4])
