@@ -99,8 +99,8 @@ proposal <- function(parameter, idxes) {
 }
 
 ## * Tuning
-sample_size <- 100000
-burning_size <- 60000
+sample_size <- 40000
+burning_size <- 20000
 proposal_hyperparam <- list(
   mu1 = 6, sd1 = 0.8,
   mu2 = 3, sd2 = 1,
