@@ -37,13 +37,20 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
 
   for (index in 1:(nsim + nburn)) {
     if (index %% 10000 == 0) cat(index, "\n")
+    # Define new parameters
+    eta <- 1/(1 + Beta_2 * exp(Beta_3 * X))
+    zeta <- X * eta
 
+    # Update Beta 1
+    var.Beta_1 <- solve(t(zeta) %*% zeta / sigma2 + inv.sigma.beta)
+    mean.Beta_1 <- var.Beta_1 %*% (t(zeta) %*% (Y - eta) / sigma2)
+    Beta_1 <- rnorm(1, mean.Beta_1, sqrt(var.Beta_1))
     
     # Update Beta 2 and Beta 3
 
     # Propose new values
-    proposed_beta_2 <- rnorm(1, mean = Beta_2, sd = 0.1)
-    proposed_beta_3 <- rnorm(1, mean = Beta_3, sd = 0.1)
+    proposed_beta_2 <- rnorm(1, mean = Beta_2, sd = 0.05)
+    proposed_beta_3 <- rnorm(1, mean = Beta_3, sd = 0.05)
     
     # Compute acceptance ratio
     log_acceptance_ratio_beta <- sum(likelihood(Beta_1, proposed_beta_2, proposed_beta_3, sigma2, X, Y)) +
@@ -64,7 +71,8 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
     
     # Update Sigma2
     # Propose sigma2
-    proposed_sigma2 <- rgamma(1, shape = a, scale = b)
+    # proposed_sigma2 <- rgamma(1, shape = 5*sigma2^2, scale = 0.2/sigma2)
+    proposed_sigma2 <- rgamma(1, shape = 8, scale = 0.5)
 
     # Compute acceptance ratio
     log_acceptance_ratio_sigma2 <- sum(likelihood(Beta_1, Beta_2, Beta_3, proposed_sigma2, X, Y)) +
@@ -80,15 +88,6 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
       acceptance_sigma <- 0
     }
 
-
-    # Define new parameters
-    eta <- 1/(1 + Beta_2 * exp(Beta_3 * X))
-    zeta <- X * eta
-
-    # Update Beta 1
-    var.Beta_1 <- solve(t(zeta) %*% zeta / sigma2 + inv.sigma.beta)
-    mean.Beta_1 <- var.Beta_1 %*% (t(zeta) %*% (Y - eta) / sigma2)
-    Beta_1 <- rnorm(1, mean.Beta_1, sqrt(var.Beta_1))
     
     if (index > nburn && (index - nburn) %% nthin == 0) {
       Beta_1.chain[, (index - nburn) / nthin] <- Beta_1
@@ -107,12 +106,15 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
 
 ## Read the data
 gls <- load("/home/vinux/Documents/Homework/glm dat.RData")
+mean(result$sigma2.chain)
 
 result <- mix_sampler(X, Y, 100000, 100000, 1)
 plot(result$Beta_1.chain[1,], type = "l")
 plot(result$Beta_2.chain[1,], type = "l")
 plot(result$Beta_3.chain[1,], type = "l")
 plot(result$sigma2.chain, type = "l")
+var(result$sigma2.chain)
+
 
 mean(result$acceptance_beta)
 mean(result$acceptance_sigma)
