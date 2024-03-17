@@ -99,12 +99,12 @@ proposal <- function(parameter, idxes) {
 }
 
 ## * Tuning
-sample_size <- 40000
-burning_size <- 20000
+sample_size <- 100000
+burning_size <- 60000
 proposal_hyperparam <- list(
   mu1 = 6, sd1 = 0.8,
   mu2 = 3, sd2 = 1,
-  mu3 = -0.4, sd3 = 0.1,
+  mu3 = -0.4, sd3 = 0.07,
   shape = 1, scale = 10)
 res_mcmc <- block_MH(
   sample_size = sample_size, burning_size = burning_size,
