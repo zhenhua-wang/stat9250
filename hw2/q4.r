@@ -56,16 +56,25 @@ block_MH <- function(sample_size, burning_size,
     accept_rates = accept_rates))
 }
 
+## * Tuning
 logproposal <- function(para1, para2, idxes) {
   beta1 <- para1[1]
   beta2 <- para1[2]
   beta3 <- para1[3]
   sigma2 <- para1[4]
   density <- +
-    sum(dnorm(beta1, 0, 5, log = TRUE)) +
-    sum(dnorm(beta2, 0, 5, log = TRUE)) +
-    sum(dnorm(beta3, 0, 1, log = TRUE)) +
-    sum(dgamma(sigma2, shape = 1, scale = 10, log = TRUE))
+    sum(dnorm(
+      beta1, proposal_hyperparam$mu1,
+      proposal_hyperparam$sd1, log = TRUE)) +
+    sum(dnorm(
+      beta2, proposal_hyperparam$mu2,
+      proposal_hyperparam$sd2, log = TRUE)) +
+    sum(dnorm(
+      beta3, proposal_hyperparam$mu3,
+      proposal_hyperparam$sd3, log = TRUE)) +
+    sum(dgamma(
+      sigma2, shape = proposal_hyperparam$shape,
+      scale = proposal_hyperparam$scale, log = TRUE))
   return(density)
 }
 
@@ -73,13 +82,17 @@ proposal <- function(parameter, idxes) {
   parameter_star <- parameter
   for (idx in idxes) {
     if (idx == 1) {
-      parameter_star[idx] <- rnorm(1, 0, 5)
+      parameter_star[idx] <- rnorm(
+        1, proposal_hyperparam$mu1, proposal_hyperparam$sd1)
     } else if (idx == 2) {
-      parameter_star[idx] <- rnorm(1, 0, 5)
+      parameter_star[idx] <- rnorm(
+        1, proposal_hyperparam$mu2, proposal_hyperparam$sd2)
     } else if (idx == 3) {
-      parameter_star[idx] <- rnorm(1, 0, 1)
+      parameter_star[idx] <- rnorm(
+        1, proposal_hyperparam$mu3, proposal_hyperparam$sd3)
     } else {
-      parameter_star[idx] <- rgamma(1, shape = 1, scale = 10)
+      parameter_star[idx] <- rgamma(
+        1, shape = proposal_hyperparam$shape, scale = proposal_hyperparam$scale)
     }
   }
   return(parameter_star)
@@ -87,7 +100,11 @@ proposal <- function(parameter, idxes) {
 
 sample_size <- 100000
 burning_size <- 50000
-tau <- sqrt(10)
+proposal_hyperparam <- list(
+  mu1 = 0, sd1 = 5,
+  mu2 = 0, sd2 = 3,
+  mu3 = 0, sd3 = 0.5,
+  shape = 1, scale = 10)
 res_mcmc <- block_MH(
   sample_size = sample_size, burning_size = burning_size,
   X = X, Y = Y,
@@ -97,6 +114,7 @@ res_mcmc <- block_MH(
   logproposal = logproposal,
   proposal_func = proposal)
 
+## * Results
 theta_mcmc <- res_mcmc$samples
 accept_mcmc <- res_mcmc$accept_rates
 par(mfrow = c(2, 2))
