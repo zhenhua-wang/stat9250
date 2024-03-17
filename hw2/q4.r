@@ -14,19 +14,19 @@ loglikelihood <- function(Y, X, parameter) {
 block_MH <- function(sample_size, burning_size,
                      X, Y,
                      init_parameter, block_idxes,
-                     likelihood_func, proposal_func) {
+                     loglikelihood, proposal_func) {
   parameters <- matrix(NA, sample_size + 1, length(init_parameter))
   parameters[1, ] <- init_parameter
   accept_rates <- matrix(0, sample_size, length(block_idxes))
   for (i in 1:sample_size) {
     ## old density
     parameter_current <- parameters[i, ]
-    pi.log <- likelihood_func(Y, X, parameter_current)
+    pi.log <- loglikelihood(Y, X, parameter_current)
     for (j in seq_along(block_idxes)) {
       ## propose parameters
       parameter_star <- proposal_func(parameter_current, block_idxes[[j]])
       ## new density
-      pi.log.star <- likelihood_func(Y, X, parameter_star)
+      pi.log.star <- loglikelihood(Y, X, parameter_star)
       ## update
       alpha.log <- min(0, pi.log.star - pi.log)
       U.log <- log(runif(1))
@@ -65,7 +65,7 @@ res_mcmc <- block_MH(
   X = X, Y = Y,
   init_parameter = c(0.1, 0.1, 0.1, 0.1),
   block_idxes = list(1, 2, 3, 4),
-  likelihood_func = loglikelihood,
+  loglikelihood = loglikelihood,
   proposal_func = proposal)
 
 theta_mcmc <- res_mcmc$samples
