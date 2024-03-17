@@ -9,14 +9,14 @@ block_MH <- function(sample_size, burning_size,
   parameters <- matrix(NA, sample_size + 1, length(init_parameter))
   parameters[1, ] <- init_parameter
   accept_rates <- matrix(0, sample_size, length(block_idxes))
+  ## old target density
+  parameter_current <- parameters[1, ]
+  pi.log <- logposterior(Y, X, parameter_current)
   for (i in 1:sample_size) {
-    ## old density
-    parameter_current <- parameters[i, ]
-    pi.log <- logposterior(Y, X, parameter_current)
     for (j in seq_along(block_idxes)) {
       ## propose parameters
       parameter_star <- proposal_func(parameter_current, block_idxes[[j]])
-      ## new density
+      ## new target density
       pi.log.star <- logposterior(Y, X, parameter_star)
       ## proposal density
       q_xn_xstar <- logproposal(parameter_current,
@@ -99,12 +99,12 @@ proposal <- function(parameter, idxes) {
 }
 
 ## * Tuning
-sample_size <- 100000
-burning_size <- 50000
+sample_size <- 40000
+burning_size <- 20000
 proposal_hyperparam <- list(
-  mu1 = 0, sd1 = 20,
-  mu2 = 0, sd2 = 15,
-  mu3 = 0, sd3 = 1,
+  mu1 = 0, sd1 = 3,
+  mu2 = 0, sd2 = 3,
+  mu3 = 0, sd3 = 0.5,
   shape = 1, scale = 10)
 res_mcmc <- block_MH(
   sample_size = sample_size, burning_size = burning_size,
@@ -119,10 +119,14 @@ res_mcmc <- block_MH(
 theta_mcmc <- res_mcmc$samples
 accept_mcmc <- res_mcmc$accept_rates
 par(mfrow = c(2, 2))
-plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l",
+  main = sprintf("rate %.3f", mean(accept_mcmc[, 1])))
+plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l",
+  main = sprintf("rate %.3f", mean(accept_mcmc[, 2])))
+plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l",
+  main = sprintf("rate %.3f", mean(accept_mcmc[, 3])))
+plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l",
+  main = sprintf("rate %.3f", mean(accept_mcmc[, 4])))
 
 apply(accept_mcmc, 2, mean)
 
