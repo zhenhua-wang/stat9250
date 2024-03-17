@@ -115,8 +115,18 @@ plot(result$Beta_1.chain[1,], type = "l")
 plot(result$Beta_2.chain[1,], type = "l")
 plot(result$Beta_3.chain[1,], type = "l")
 plot(result$sigma2.chain, type = "l")
-var(result$sigma2.chain)
 
-
+## Acceptance Rate
 mean(result$acceptance_beta)
 mean(result$acceptance_sigma)
+
+## Prediction using posterior mean
+beta1.posmean <- mean(result$Beta_1.chain[1,])
+beta2.posmean <- mean(result$Beta_2.chain[1,])
+beta3.posmean <- mean(result$Beta_3.chain[1,])
+beta4.posmean <- mean(result$sigma2.chain)
+X_grid <- seq(0.001, 10, length.out = 10000)
+Y_grid <- (1 + beta1.posmean * X_grid) /
+  (1 + beta2.posmean * exp(beta3.posmean * X_grid))
+plot(X_grid, Y_grid, type = "l")
+points(X, Y)
