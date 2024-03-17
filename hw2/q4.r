@@ -109,7 +109,7 @@ sig2 <- 1#sd(Y)
 sample_size <- 200000
 burning_size <- 100000
 proposal_hyperparam <- list(
-  sd1 = 0.4, sd2 = 0.1, sd3 = 0.1, sd4 = 5)
+  sd1 = 0.35, sd2 = 0.26, sd3 = 0.07, sd4 = 3.2)
 res_mcmc <- block_MH(
   X = X, Y = Y,
   sample_size = sample_size,
@@ -139,3 +139,14 @@ hist(theta_mcmc[, 1])
 hist(theta_mcmc[, 2])
 hist(theta_mcmc[, 3])
 hist(theta_mcmc[, 4])
+
+## * Prediction using posterior mean
+beta1.posmean <- mean(theta_mcmc[, 1])
+beta2.posmean <- mean(theta_mcmc[, 2])
+beta3.posmean <- mean(theta_mcmc[, 3])
+beta4.posmean <- mean(theta_mcmc[, 4])
+X_grid <- seq(0.001, 10, length.out = 10000)
+Y_grid <- (1 + beta1.posmean * X_grid) /
+  (1 + beta2.posmean * exp(beta3.posmean * X_grid))
+plot(X_grid, Y_grid, type = "l")
+points(X, Y)
