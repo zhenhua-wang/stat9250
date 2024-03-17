@@ -71,7 +71,9 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
     
     # Update Sigma2
     # Propose sigma2
-    # proposed_sigma2 <- rgamma(1, shape = 5*sigma2^2, scale = 0.2/sigma2)
+    ## Using posterior result to update shape and scale parameters. using k*theta = mean and k * theta^2 = variance.
+    ## We set the variance is 2 and mean is 4. So we determine the parameter should be 8 and 0.5
+    
     proposed_sigma2 <- rgamma(1, shape = 8, scale = 0.5)
 
     # Compute acceptance ratio
