@@ -38,7 +38,7 @@ block_MH <- function(sample_size, burning_size,
   }
   return(list(
     samples = parameters[(burning_size + 2):(sample_size + 1), ],
-    accept_rates = accept_rates))
+    accept_rates = accept_rates[(burning_size + 1):sample_size, ]))
 }
 
 ## * Density
@@ -48,6 +48,10 @@ logposterior <- function(Y, X, parameter) {
   beta2 <- parameter[2]
   beta3 <- parameter[3]
   sigma2 <- parameter[4]
+  ## reject invalid sigma2
+  if (sigma2 < 0) {
+    return(log(0))
+  }
   mu <- (1 + beta1 * X) / (1 + beta2 * exp(beta3 * X))
   pi.log <- sum(dnorm(Y, mu, sqrt(sigma2), log = TRUE)) +
     sum(dnorm(beta1, 0, tau, log = TRUE)) +
@@ -58,23 +62,19 @@ logposterior <- function(Y, X, parameter) {
 }
 
 logproposal <- function(para1, para2, idxes) {
-  beta1 <- para1[1]
-  beta2 <- para1[2]
-  beta3 <- para1[3]
-  sigma2 <- para1[4]
   density <- +
     sum(dnorm(
-      beta1, proposal_hyperparam$mu1,
+      para1[1], para2[1],
       proposal_hyperparam$sd1, log = TRUE)) +
     sum(dnorm(
-      beta2, proposal_hyperparam$mu2,
+      para1[2], para2[2],
       proposal_hyperparam$sd2, log = TRUE)) +
     sum(dnorm(
-      beta3, proposal_hyperparam$mu3,
+      para1[3], para2[3],
       proposal_hyperparam$sd3, log = TRUE)) +
-    sum(dgamma(
-      sigma2, shape = proposal_hyperparam$shape,
-      scale = proposal_hyperparam$scale, log = TRUE))
+    sum(dnorm(
+      para1[4], para2[4],
+      proposal_hyperparam$sd4, log = TRUE))
   return(density)
 }
 
@@ -83,33 +83,36 @@ proposal <- function(parameter, idxes) {
   for (idx in idxes) {
     if (idx == 1) {
       parameter_star[idx] <- rnorm(
-        1, proposal_hyperparam$mu1, proposal_hyperparam$sd1)
+        1, parameter[idx], proposal_hyperparam$sd1)
     } else if (idx == 2) {
       parameter_star[idx] <- rnorm(
-        1, proposal_hyperparam$mu2, proposal_hyperparam$sd2)
+        1, parameter[idx], proposal_hyperparam$sd2)
     } else if (idx == 3) {
       parameter_star[idx] <- rnorm(
-        1, proposal_hyperparam$mu3, proposal_hyperparam$sd3)
+        1, parameter[idx], proposal_hyperparam$sd3)
     } else {
-      parameter_star[idx] <- rgamma(
-        1, shape = proposal_hyperparam$shape, scale = proposal_hyperparam$scale)
+      parameter_star[idx] <- rnorm(
+        1, parameter[idx], proposal_hyperparam$sd4)
     }
   }
   return(parameter_star)
 }
 
+## * Init parameter
+beta1 <- - 1 / X[166]
+beta2 <- 1 / Y[166] - 1
+beta3 <- log((1 + beta1 - Y[166]) / (Y[166] * beta2))
+sig2 <- sd(Y)
+
 ## * Tuning
-sample_size <- 40000
-burning_size <- 20000
+sample_size <- 200000
+burning_size <- 100000
 proposal_hyperparam <- list(
-  mu1 = 6, sd1 = 0.8,
-  mu2 = 3, sd2 = 1,
-  mu3 = -0.4, sd3 = 0.07,
-  shape = 1, scale = 10)
+  sd1 = 0.4, sd2 = 0.3, sd3 = 0.01, sd4 = 30)
 res_mcmc <- block_MH(
   sample_size = sample_size, burning_size = burning_size,
   X = X, Y = Y,
-  init_parameter = c(0.1, 0.1, 0.1, 0.1),
+  init_parameter = c(beta1, beta2, beta3, sig2),
   block_idxes = list(1, 2, 3, 4),
   logposterior = logposterior,
   logproposal = logproposal,
@@ -119,35 +122,18 @@ res_mcmc <- block_MH(
 theta_mcmc <- res_mcmc$samples
 accept_mcmc <- res_mcmc$accept_rates
 par(mfrow = c(2, 2))
-plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l",
-  main = sprintf("rate %.3f", mean(accept_mcmc[, 1])))
-plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l",
-  main = sprintf("rate %.3f", mean(accept_mcmc[, 2])))
-plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l",
-  main = sprintf("rate %.3f", mean(accept_mcmc[, 3])))
-plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l",
-  main = sprintf("rate %.3f", mean(accept_mcmc[, 4])))
+plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l")
+mtext(paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
+  collapse = ', '),
+  side = 3, line = -2, cex = 1, outer = TRUE)
 
 apply(accept_mcmc, 2, mean)
 
-par(mfrow = c(2, 2))
-hist(theta_mcmc[, 1])
-hist(theta_mcmc[, 2])
-hist(theta_mcmc[, 3])
-hist(theta_mcmc[, 4])
-
-## * Importance sampling
-N <- round(exp(seq( 2, 10, length.out=100)))
-MC_est_IS <- rep( NA, length(N))
-MC_se_IS <- rep( NA, length(N))
-## Importance sampling
-sd <- sqrt(0.5); f_X <- 1/10
-
-for(iter in 1:length(N)){
-  X <- rnorm(N[iter], mean = 5, sd = sd)
-  g_X <- exp(-2*abs(X-5))*10
-  q_X <- dnorm(X, mean = 5, sd = sd)
-  ratio <- g_X*f_X/q_X
-  MC_est_IS[iter] <- mean(ratio)
-  MC_se_IS[iter] <- sqrt(var(ratio)/N[iter])
-}
+## par(mfrow = c(2, 2))
+## hist(theta_mcmc[, 1])
+## hist(theta_mcmc[, 2])
+## hist(theta_mcmc[, 3])
+## hist(theta_mcmc[, 4])
