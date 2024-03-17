@@ -1,21 +1,6 @@
 load("./hw2/glm dat.RData")
 
 ## * Block MH
-logposterior <- function(Y, X, parameter) {
-  tau <- sqrt(10)
-  beta1 <- parameter[1]
-  beta2 <- parameter[2]
-  beta3 <- parameter[3]
-  sigma2 <- parameter[4]
-  mu <- (1 + beta1 * X) / (1 + beta2 * exp(beta3 * X))
-  pi.log <- sum(dnorm(Y, mu, sqrt(sigma2), log = TRUE)) +
-    sum(dnorm(beta1, 0, tau, log = TRUE)) +
-    sum(dnorm(beta2, 0, tau, log = TRUE)) +
-    sum(dnorm(beta3, 0, tau, log = TRUE)) +
-    sum(dgamma(sigma2, shape = 1, scale = 10, log = TRUE))
-  return(pi.log)
-}
-
 block_MH <- function(sample_size, burning_size,
                      X, Y,
                      init_parameter, block_idxes,
@@ -56,7 +41,22 @@ block_MH <- function(sample_size, burning_size,
     accept_rates = accept_rates))
 }
 
-## * Tuning
+## * Density
+logposterior <- function(Y, X, parameter) {
+  tau <- sqrt(10)
+  beta1 <- parameter[1]
+  beta2 <- parameter[2]
+  beta3 <- parameter[3]
+  sigma2 <- parameter[4]
+  mu <- (1 + beta1 * X) / (1 + beta2 * exp(beta3 * X))
+  pi.log <- sum(dnorm(Y, mu, sqrt(sigma2), log = TRUE)) +
+    sum(dnorm(beta1, 0, tau, log = TRUE)) +
+    sum(dnorm(beta2, 0, tau, log = TRUE)) +
+    sum(dnorm(beta3, 0, tau, log = TRUE)) +
+    sum(dgamma(sigma2, shape = 1, scale = 10, log = TRUE))
+  return(pi.log)
+}
+
 logproposal <- function(para1, para2, idxes) {
   beta1 <- para1[1]
   beta2 <- para1[2]
@@ -98,12 +98,13 @@ proposal <- function(parameter, idxes) {
   return(parameter_star)
 }
 
+## * Tuning
 sample_size <- 100000
 burning_size <- 50000
 proposal_hyperparam <- list(
-  mu1 = 0, sd1 = 5,
-  mu2 = 0, sd2 = 3,
-  mu3 = 0, sd3 = 0.5,
+  mu1 = 0, sd1 = 20,
+  mu2 = 0, sd2 = 15,
+  mu3 = 0, sd3 = 1,
   shape = 1, scale = 10)
 res_mcmc <- block_MH(
   sample_size = sample_size, burning_size = burning_size,
@@ -114,7 +115,7 @@ res_mcmc <- block_MH(
   logproposal = logproposal,
   proposal_func = proposal)
 
-## * Results
+## * Result
 theta_mcmc <- res_mcmc$samples
 accept_mcmc <- res_mcmc$accept_rates
 par(mfrow = c(2, 2))
