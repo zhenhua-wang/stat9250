@@ -102,9 +102,9 @@ proposal <- function(parameter, idxes) {
 sample_size <- 40000
 burning_size <- 20000
 proposal_hyperparam <- list(
-  mu1 = 0, sd1 = 3,
-  mu2 = 0, sd2 = 3,
-  mu3 = 0, sd3 = 0.5,
+  mu1 = 6, sd1 = 0.8,
+  mu2 = 3, sd2 = 1,
+  mu3 = -0.4, sd3 = 0.1,
   shape = 1, scale = 10)
 res_mcmc <- block_MH(
   sample_size = sample_size, burning_size = burning_size,
@@ -129,6 +129,12 @@ plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l",
   main = sprintf("rate %.3f", mean(accept_mcmc[, 4])))
 
 apply(accept_mcmc, 2, mean)
+
+par(mfrow = c(2, 2))
+hist(theta_mcmc[, 1])
+hist(theta_mcmc[, 2])
+hist(theta_mcmc[, 3])
+hist(theta_mcmc[, 4])
 
 ## * Importance sampling
 N <- round(exp(seq( 2, 10, length.out=100)))
