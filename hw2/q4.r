@@ -1,34 +1,45 @@
 load("./hw2/glm dat.RData")
 
 ## * Block MH
-loglikelihood <- function(Y, X, parameter) {
+logposterior <- function(Y, X, parameter) {
+  tau <- sqrt(10)
   beta1 <- parameter[1]
   beta2 <- parameter[2]
   beta3 <- parameter[3]
   sigma2 <- parameter[4]
   mu <- (1 + beta1 * X) / (1 + beta2 * exp(beta3 * X))
-  pi.log <- sum(dnorm(Y, mu, sqrt(sigma2), log = TRUE))
+  pi.log <- sum(dnorm(Y, mu, sqrt(sigma2), log = TRUE)) +
+    sum(dnorm(beta1, 0, tau, log = TRUE)) +
+    sum(dnorm(beta2, 0, tau, log = TRUE)) +
+    sum(dnorm(beta3, 0, tau, log = TRUE)) +
+    sum(dgamma(sigma2, shape = 1, scale = 10, log = TRUE))
   return(pi.log)
 }
 
 block_MH <- function(sample_size, burning_size,
                      X, Y,
                      init_parameter, block_idxes,
-                     loglikelihood, proposal_func) {
+                     logposterior, logproposal,
+                     proposal_func) {
   parameters <- matrix(NA, sample_size + 1, length(init_parameter))
   parameters[1, ] <- init_parameter
   accept_rates <- matrix(0, sample_size, length(block_idxes))
   for (i in 1:sample_size) {
     ## old density
     parameter_current <- parameters[i, ]
-    pi.log <- loglikelihood(Y, X, parameter_current)
+    pi.log <- logposterior(Y, X, parameter_current)
     for (j in seq_along(block_idxes)) {
       ## propose parameters
       parameter_star <- proposal_func(parameter_current, block_idxes[[j]])
       ## new density
-      pi.log.star <- loglikelihood(Y, X, parameter_star)
+      pi.log.star <- logposterior(Y, X, parameter_star)
+      ## proposal density
+      q_xn_xstar <- logproposal(parameter_current,
+        parameter_star, block_idxes[[j]])
+      q_xstar_xn <- logproposal(parameter_star,
+        parameter_current, block_idxes[[j]])
       ## update
-      alpha.log <- min(0, pi.log.star - pi.log)
+      alpha.log <- min(0, pi.log.star + q_xn_xstar - pi.log - q_xstar_xn)
       U.log <- log(runif(1))
       if (U.log < alpha.log) {
         parameters[i + 1, ] <- parameter_star
@@ -45,13 +56,30 @@ block_MH <- function(sample_size, burning_size,
     accept_rates = accept_rates))
 }
 
+logproposal <- function(para1, para2, idxes) {
+  beta1 <- para1[1]
+  beta2 <- para1[2]
+  beta3 <- para1[3]
+  sigma2 <- para1[4]
+  density <- +
+    sum(dnorm(beta1, 0, 5, log = TRUE)) +
+    sum(dnorm(beta2, 0, 5, log = TRUE)) +
+    sum(dnorm(beta3, 0, 1, log = TRUE)) +
+    sum(dgamma(sigma2, shape = 1, scale = 10, log = TRUE))
+  return(density)
+}
+
 proposal <- function(parameter, idxes) {
   parameter_star <- parameter
   for (idx in idxes) {
-    if (idx == 4) {
-      parameter_star[idx] <- rgamma(1, shape = 1, scale = 10)
+    if (idx == 1) {
+      parameter_star[idx] <- rnorm(1, 0, 5)
+    } else if (idx == 2) {
+      parameter_star[idx] <- rnorm(1, 0, 5)
+    } else if (idx == 3) {
+      parameter_star[idx] <- rnorm(1, 0, 1)
     } else {
-      parameter_star[idx] <- rnorm(1, 0, tau)
+      parameter_star[idx] <- rgamma(1, shape = 1, scale = 10)
     }
   }
   return(parameter_star)
@@ -65,7 +93,8 @@ res_mcmc <- block_MH(
   X = X, Y = Y,
   init_parameter = c(0.1, 0.1, 0.1, 0.1),
   block_idxes = list(1, 2, 3, 4),
-  loglikelihood = loglikelihood,
+  logposterior = logposterior,
+  logproposal = logproposal,
   proposal_func = proposal)
 
 theta_mcmc <- res_mcmc$samples
