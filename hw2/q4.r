@@ -109,7 +109,7 @@ sig2 <- 1#sd(Y)
 sample_size <- 200000
 burning_size <- 100000
 proposal_hyperparam <- list(
-  sd1 = 0.35, sd2 = 0.26, sd3 = 0.07, sd4 = 3.2)
+  sd1 = 0.35, sd2 = 0.25, sd3 = 0.07, sd4 = 3.2)
 res_mcmc <- block_MH(
   X = X, Y = Y,
   sample_size = sample_size,
