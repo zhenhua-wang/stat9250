@@ -125,8 +125,7 @@ mtext(paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
   collapse = ', '),
   side = 3, line = -2, cex = 1, outer = TRUE)
 
-apply(accept_mcmc, 2, mean)
-
+## * Posterior histogram
 par(mfrow = c(2, 2))
 hist(theta_mcmc[, 1])
 hist(theta_mcmc[, 2])
