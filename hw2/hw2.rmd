@@ -248,18 +248,18 @@ The objective of this problem is to estimate the probability the diagonal of a m
 
 $$\pi(X) \propto  p^{N(X)}(1 - p)^{16 - N(X)} \text{exp}\{-\lambda D(X)\}.$$
 
-where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the total number of neighbors (horizontal or vertical).
--  The matrix M is given by:
+where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the sum of the absolute values of $MV$. $V$ is the flattened vector of $X$ and $M$ is given by:
 
-\begin{pmatrix}
- 1 & -1 &  0 &  0 &  0 & \cdots &  0 &  0 &  0 &  0  &  0\\
- \vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots\\
- 0 &  0 &  0 &  0 &  0 & \cdots &  0 &  0 &  0 &  1  &  -1\\
- 
- 1 &  0 &  0 &  0 & -1 & \cdots  &  0 &  0 &  0 &  0 & 0\\
- \vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots\\
- 0 &  0 &  0 &  0 & 0 & \cdots &  1 &  0 &  0 &  0 & -1 \\
-\end{pmatrix}
+$$
+\left( \begin{array}{ccccccccccc}
+1 & -1 & 0 & 0 & 0 & \cdots & 0 & 0 & 0 & 0 & 0 \\
+\vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+0 & 0 & 0 & 0 & 0 & \cdots & 0 & 0 & 0 & 1 & -1 \\
+1 & 0 & 0 & 0 & -1 & \cdots & 0 & 0 & 0 & 0 & 0 \\
+\vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+0 & 0 & 0 & 0 & 0 & \cdots & 1 & 0 & 0 & 0 & -1
+\end{array} \right)
+$$
 
 ### (1) Algorithm Description
 
