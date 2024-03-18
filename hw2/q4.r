@@ -114,18 +114,6 @@ res_mcmc <- block_MH(
   proposal_func = proposal)
 
 ## * Evaluation
-theta_mcmc <- res_mcmc$samples
-accept_mcmc <- res_mcmc$accept_rates
-par(mfrow = c(2, 2))
-plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l")
-mtext(paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
-  collapse = ', '),
-  side = 3, line = -2, cex = 1, outer = TRUE)
-
-## effective sample size
 effective_size <- function(samples) {
   n <- length(samples)
   rho <- acf(samples, plot = FALSE)$acf
@@ -133,7 +121,21 @@ effective_size <- function(samples) {
   rho[is.na(rho)] <- 0
   return(n / (1 + sum(rho)))
 }
-apply(theta_mcmc, 2, effective_size)
+
+theta_mcmc <- res_mcmc$samples
+accept_mcmc <- res_mcmc$accept_rates
+par(mfrow = c(2, 2))
+plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l")
+plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l")
+mtext(paste(
+  paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
+    collapse = ', '),
+  paste(sprintf("ESS %.3f", apply(theta_mcmc, 2, effective_size)),
+    collapse = ', '),
+  sep="\n"),
+  side = 3, line = -3, cex = 1, outer = TRUE)
 
 ## * Posterior histogram
 par(mfrow = c(2, 2))
