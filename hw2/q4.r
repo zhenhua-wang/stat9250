@@ -146,6 +146,12 @@ par(mfrow = c(1, 1))
 plot(X_grid, Y_grid, type = "l")
 points(X, Y)
 
+## check normal assumption
+residual.posmean <- Y - (1 + beta1.posmean * X) /
+  (1 + beta2.posmean * exp(beta3.posmean * X))
+plot(residual.posmean)
+abline(h = 0, col = "red")
+
 ## * Importance Sampling
 target_dense_IS <- function(theta, args) {
   Y <- args$Y
