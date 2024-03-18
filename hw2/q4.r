@@ -142,5 +142,6 @@ beta4.posmean <- mean(theta_mcmc[, 4])
 X_grid <- seq(0.001, 10, length.out = 10000)
 Y_grid <- (1 + beta1.posmean * X_grid) /
   (1 + beta2.posmean * exp(beta3.posmean * X_grid))
+par(mfrow = c(1, 1))
 plot(X_grid, Y_grid, type = "l")
 points(X, Y)
