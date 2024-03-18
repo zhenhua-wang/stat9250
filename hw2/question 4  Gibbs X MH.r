@@ -107,7 +107,7 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
 
 
 ## Read the data
-gls <- load("/home/vinux/Documents/Homework/glm dat.RData")
+gls <- load("./hw2/glm dat.RData")
 mean(result$sigma2.chain)
 
 result <- mix_sampler(X, Y, 100000, 100000, 1)
@@ -130,3 +130,16 @@ Y_grid <- (1 + beta1.posmean * X_grid) /
   (1 + beta2.posmean * exp(beta3.posmean * X_grid))
 plot(X_grid, Y_grid, type = "l")
 points(X, Y)
+
+## effective sample size
+effective_size <- function(samples) {
+  n <- length(samples)
+  rho <- acf(samples, plot = FALSE)$acf
+  rho <- rho[2:(n - 1)]
+  rho[is.na(rho)] <- 0
+  return(n / (1 + sum(rho)))
+}
+effective_size(result$Beta_1.chain[1,])
+effective_size(result$Beta_2.chain[1,])
+effective_size(result$Beta_3.chain[1,])
+effective_size(result$sigma2.chain)
