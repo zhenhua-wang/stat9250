@@ -23,6 +23,152 @@ F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg
 Then we proceeded to use the three different ways to intergate this function in python and C++ using gsl. Complete code is submitted with the homework. The below figure shows the estimate of the CDF for the two different values of $\delta$ and for different ranges of $X$.
 ![](q1plot.png){width="70%"}
 
+## Define integrand in Python
+Based on the previous calculation, we define the following integrand in python.
+
+```{python eval=FALSE, python.reticulate = FALSE}
+def normal_density(eps, tau):
+    return np.exp(-eps*eps/(2*tau*tau))/(tau*np.sqrt(2*np.pi))
+
+def integrand(eps, x, delta, tau):
+    return (1 - (delta / (2*delta - 1)) * (x - eps)**(-(1 - delta) / delta) +
+            ((1 - delta) / (2*delta - 1)) * (x - eps)**-1) * \
+            normal_density(eps, tau)
+```
+
+Solving this integration with default parameters in `si.quad` will results in numerical issues at the tails of distribution. To deal with this, we tuning the `points` parameter to include the high density region. We can roughly observe that this integrate has high density within `(-10, 100)`.
+
+```{python eval=FALSE, python.reticulate = FALSE}
+def F(x, delta, tau, epsabs=1.49e-7, epsrel=1.49e-8):
+    integral = si.quad(integrand, a=-1e6, b=x-1,
+                       args=(x, delta, tau),
+                       epsabs=epsabs, epsrel=epsrel,
+                       points=[-10, 100])
+    return integral[0]
+F_vec = np.vectorize(F)
+```
+
+The computation time is 0.66s.
+```{python eval=FALSE, python.reticulate = FALSE}
+start = time.time()
+X_vals1 = np.linspace(-100, 100, num=2000)
+result = F_vec(X_vals1, 0.3, np.sqrt(10))
+end = time.time()
+print('running time:', end - start)
+```
+
+## Define integrate in C++
+
+Below we define a similar integrand in C++
+```{c++ eval=FALSE}
+extern "C"
+{
+  double integrand(int n, double *params){
+    double eps = params[0];
+    double x   = params[1];
+    double delta = params[2];
+    double tau = params[3];
+    double res =
+      (1 - (delta / (2*delta - 1)) *
+       pow((x - eps), (-(1 - delta) / delta)) +
+       ((1 - delta) / (2*delta - 1)) * pow((x - eps), -1)) *
+      exp(-eps*eps/(2*tau*tau))/(tau*sqrt(2*M_PI));
+    return res;
+  }
+}
+```
+
+After compiling this integrand as `q1_integrand_cpp.so`, we then using the following script to load it into Python.
+
+```{python eval=FALSE, python.reticulate = FALSE}
+# load c++ integrand without gsl
+lib = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand_cpp.so'))
+lib.integrand.restype = ctypes.c_double
+lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
+integrand_cpp = LowLevelCallable(lib.integrand)
+```
+
+When called with `si.quad` with the same parameters, we observer that the running time reduces significantly to 0.04.
+
+## Integrate in C++
+
+Similar as `si.quad`, `gsl_integration_qagp` allows specifying the high density region through `pts` parameters. Unlike python, `pts` includes the integral bound. We specify `pts` to be an array of length 4, and set `pts[0]` and `pts[3]` as two lower bounds. We then set `pts[1]` and `pts[2]` to lies in the intersection between `(-10, 100)` and `(pts[0], pts[3])`.
+```{c++ eval=FALSE}
+extern "C" {
+
+  struct my_f_params {
+    double x;
+    double delta;
+    double tau;
+  };
+
+  double integrand(double eps, void * p) {
+    struct my_f_params *params = (struct my_f_params *)p;
+    double x = (params->x);
+    double delta = (params->delta);
+    double tau = (params->tau);
+
+    double res =
+      (1 - (delta / (2 * delta - 1)) * pow((x - eps), (-(1 - delta) / delta)) +
+       ((1 - delta) / (2 * delta - 1)) * pow((x - eps), -1)) *
+      exp(-eps * eps / (2 * tau * tau)) / (tau * sqrt(2 * M_PI));
+    return res;
+  }
+
+  double f_gsl(double x, double delta, double tau) {
+    double result = 0.0;
+    double error = 0.0;
+
+    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1e4);
+    gsl_set_error_handler_off();
+    struct my_f_params params = {x, delta, tau};
+    int err = 0;
+
+    gsl_function F;
+    F.function = &integrand;
+    F.params = &params;
+
+    double sig_pts[2];
+    if (x-1 <= -100) {
+      sig_pts[0] = x - 3;
+      sig_pts[1] = x - 2;
+    } else if (x-1 <= 100) {
+      sig_pts[0] = -100;
+      sig_pts[1] = x - 2;
+    } else {
+      sig_pts[0] = -10;
+      sig_pts[1] = 100;
+    }
+    double pts[4] = {-1000000.0, sig_pts[0], sig_pts[1], x-1.0};
+
+    err = gsl_integration_qagp(&F, pts, 4,
+                               1.49e-8, 1.49e-9, 50,
+                               w, &result,&error);
+    // Error handling: decrease epsabs if diverging
+    if (err == GSL_EDIVERGE) {
+      printf("Quadrature didn't converge.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    gsl_integration_workspace_free(w);
+    return result;
+  }
+}
+```
+
+We then use the following script to load the C++ methods into Python.
+
+```{python eval=FALSE, python.reticulate = FALSE}
+lib_1 = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand_cpp_gsl.so'))
+lib_1.integrand.restype = ctypes.c_double
+lib_1.integrand.argtypes = (ctypes.c_int, ctypes.c_void_p)
+lib_1.f_gsl.restype = ctypes.c_double
+lib_1.f_gsl.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+F_vec = np.vectorize(lib_1.f_gsl)
+```
+
+The running time is further reduced to 0.02 with the new `F_vec`.
+
 # Problem 2
 
 The objective of this problem is to obtain a sample from the exponentially tilted positive stable distribution which has the following pdf.
