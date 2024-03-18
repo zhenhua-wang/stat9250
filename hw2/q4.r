@@ -184,7 +184,7 @@ importance_sampler <- function(Y, X, num_iter, args) {
   return(MC_est_IS)
 }
 
-IS_estimate <- importance_sampler(Y, X, 200,
+IS_estimate <- importance_sampler(Y, X, 500,
   list(Y = Y, X = X, tau = sqrt(5),
     mu1 = 6, mu2 = 3, mu3 = -0.4,
     sd1 = 2, sd2 = 2, sd3 = 2,
