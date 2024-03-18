@@ -139,7 +139,7 @@ beta1.posmean <- mean(theta_mcmc[, 1])
 beta2.posmean <- mean(theta_mcmc[, 2])
 beta3.posmean <- mean(theta_mcmc[, 3])
 beta4.posmean <- mean(theta_mcmc[, 4])
-X_grid <- seq(0.001, 10, length.out = 10000)
+X_grid <- seq(min(X), max(X), length.out = 10000)
 Y_grid <- (1 + beta1.posmean * X_grid) /
   (1 + beta2.posmean * exp(beta3.posmean * X_grid))
 par(mfrow = c(1, 1))
