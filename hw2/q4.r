@@ -178,20 +178,15 @@ proposal_dense_IS <- function(theta, args) {
     dgamma(theta[, 4], shape = args$shape, scale = args$scale)
 }
 
-importance_sampler <- function(Y, X, num_iter) {
+importance_sampler <- function(Y, X, num_iter, args) {
   N <- round(exp(seq(2, 10, length.out = num_iter)))
   MC_est_IS <- matrix(NA, num_iter, 4)
-  proposal_args <- list(
-    mu1 = 6, mu2 = 3, mu3 = -0.4,
-    sd1 = 2, sd2 = 2, sd3 = 2,
-    shape = 1, scale = 10)
-  target_args <- list(Y = Y, X = X, tau = sqrt(5))
   ## Importance sampling
   for (iter in 1:num_iter) {
-    theta <- proposal_sample_IS(N[iter], proposal_args)
+    theta <- proposal_sample_IS(N[iter], args)
     g_X <- theta
-    h_X <- apply(theta, 1, target_dense_IS, args = target_args)
-    q_X <- proposal_dense_IS(theta, proposal_args)
+    h_X <- apply(theta, 1, target_dense_IS, args = args)
+    q_X <- proposal_dense_IS(theta, args)
     ratio_top <- g_X * h_X / q_X
     ratio_bot <- h_X / q_X
     ## update parameters
@@ -200,7 +195,11 @@ importance_sampler <- function(Y, X, num_iter) {
   return(MC_est_IS)
 }
 
-IS_estimate <- importance_sampler(Y, X, 100)
+IS_estimate <- importance_sampler(Y, X, 100,
+  list(Y = Y, X = X, tau = sqrt(5),
+    mu1 = 6, mu2 = 3, mu3 = -0.4,
+    sd1 = 2, sd2 = 2, sd3 = 2,
+    shape = 1, scale = 10))
 plot(IS_estimate[, 3])
 
 target_dense_IS(c(6, 3, -0.4, 4), list(Y = Y, X = X, tau = sqrt(10)))
