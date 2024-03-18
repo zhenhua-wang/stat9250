@@ -29,9 +29,11 @@ delta1 = 0.3
 delta2 = 0.7
 plt.subplot(2, 2, 1)
 plt.plot(X_vals1, F_vec(X_vals1, delta1, tau))
+plt.ylim(0, 1)
 plt.xlabel(r'$\delta = 0.3, x \in [-100,100]$')
 plt.subplot(2, 2, 2)
 plt.plot(X_vals1, F_vec(X_vals1, delta2, tau))
+plt.ylim(0, 1)
 plt.xlabel(r'$\delta = 0.7, x \in [-100,100]$')
 plt.subplot(2, 2, 3)
 plt.plot(X_vals2, F_vec(X_vals2, delta1, tau))
