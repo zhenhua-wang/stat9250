@@ -113,7 +113,7 @@ res_mcmc <- block_MH(
   logproposal = logproposal,
   proposal_func = proposal)
 
-## * Result
+## * Evaluation
 theta_mcmc <- res_mcmc$samples
 accept_mcmc <- res_mcmc$accept_rates
 par(mfrow = c(2, 2))
@@ -124,6 +124,16 @@ plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l")
 mtext(paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
   collapse = ', '),
   side = 3, line = -2, cex = 1, outer = TRUE)
+
+## effective sample size
+effective_size <- function(samples) {
+  n <- length(samples)
+  rho <- acf(samples, plot = FALSE)$acf
+  rho <- rho[2:(n - 1)]
+  rho[is.na(rho)] <- 0
+  return(n / (1 + sum(rho)))
+}
+apply(theta_mcmc, 2, effective_size)
 
 ## * Posterior histogram
 par(mfrow = c(2, 2))
