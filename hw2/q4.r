@@ -42,9 +42,9 @@ block_MH <- function(sample_size, burning_size,
 
 ## * Density
 logposterior <- function(parameter, args) {
-  tau <- sqrt(10)
   Y <- args$Y
   X <- args$X
+  tau <- args$tau
   beta1 <- parameter[1]
   beta2 <- parameter[2]
   beta3 <- parameter[3]
@@ -99,7 +99,7 @@ res_mcmc <- block_MH(
   logproposal = logproposal,
   proposal_func = proposal,
   args = list(
-    Y = Y, X = X,
+    Y = Y, X = X, tau = sqrt(10),
     sd1 = 0.35, sd2 = 0.6, sd3 = 0.05, sd4 = 1.7))
 sample_size <- dim(res_mcmc$samples)[1]
 
@@ -145,3 +145,63 @@ Y_grid <- (1 + beta1.posmean * X_grid) /
 par(mfrow = c(1, 1))
 plot(X_grid, Y_grid, type = "l")
 points(X, Y)
+
+## * Importance Sampling
+target_dense_IS <- function(theta, args) {
+  Y <- args$Y
+  X <- args$X
+  tau <- args$tau
+  beta1 <- theta[1]
+  beta2 <- theta[2]
+  beta3 <- theta[3]
+  sigma2 <- theta[4]
+  mu <- (1 + beta1 * X) / (1 + beta2 * exp(beta3 * X))
+  pi.log <- dnorm(Y, mu, sqrt(sigma2)) *
+    dnorm(beta1, 0, tau) *
+    dnorm(beta2, 0, tau) *
+    dnorm(beta3, 0, tau) *
+    dgamma(sigma2, shape = 1, scale = 10)
+  return(prod(pi.log))
+}
+
+proposal_sample_IS <- function(n, args) {
+  cbind(rnorm(n, args$mu1, args$sd1),
+    rnorm(n, args$mu2, args$sd2),
+    rnorm(n, args$mu3, args$sd3),
+    rgamma(n, shape = args$shape, scale = args$scale))
+}
+
+proposal_dense_IS <- function(theta, args) {
+  dnorm(theta[, 1], args$mu1, args$sd1) *
+    dnorm(theta[, 2], args$mu2, args$sd2) *
+    dnorm(theta[, 3], args$mu3, args$sd3) *
+    dgamma(theta[, 4], shape = args$shape, scale = args$scale)
+}
+
+importance_sampler <- function(Y, X, num_iter) {
+  N <- round(exp(seq(2, 10, length.out = num_iter)))
+  MC_est_IS <- matrix(NA, num_iter, 4)
+  proposal_args <- list(
+    mu1 = 6, mu2 = 3, mu3 = -0.4,
+    sd1 = 2, sd2 = 2, sd3 = 2,
+    shape = 1, scale = 10)
+  target_args <- list(Y = Y, X = X, tau = sqrt(5))
+  ## Importance sampling
+  for (iter in 1:num_iter) {
+    theta <- proposal_sample_IS(N[iter], proposal_args)
+    g_X <- theta
+    h_X <- apply(theta, 1, target_dense_IS, args = target_args)
+    q_X <- proposal_dense_IS(theta, proposal_args)
+    ratio_top <- g_X * h_X / q_X
+    ratio_bot <- h_X / q_X
+    ## update parameters
+    MC_est_IS[iter, ] <- apply(ratio_top, 2, sum) / sum(ratio_bot)
+  }
+  return(MC_est_IS)
+}
+
+IS_estimate <- importance_sampler(Y, X, 100)
+plot(IS_estimate[, 3])
+
+target_dense_IS(c(6, 3, -0.4, 4), list(Y = Y, X = X, tau = sqrt(10)))
+exp(logposterior(c(6, 3, -0.4, 4), list(Y = Y, X = X, tau = sqrt(10))))
