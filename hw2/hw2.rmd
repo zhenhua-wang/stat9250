@@ -386,22 +386,22 @@ gls <- load("./glm dat.RData")
   - Operation: Calculate the predicted Y (y_pred) using a specific model formula
   - Output: Return the log-likelihood of Y given the predicted values, assuming a normal distribution
 
-- **Prior for Beta**
-  - Input: beta (parameter value), tau2 (variance)
+- **Prior for $\Beta$**
+  - Input: $\beta$s (parameter value), $\tau^2$ (variance)
   - Operation: Calculate the log-prior probability of beta, assuming a normal distribution with mean 0 and variance tau2
   - Output: Log-prior probability
 
-- **Prior for Sigma^2**
-  - Input: sigma2, a, b (parameters for the gamma distribution)
-  - Operation: Calculate the log-prior probability of sigma^2, assuming a gamma distribution
+- **Prior for $\Sigma^2$**
+  - Input: $\sigma^2$, a, b (parameters for the gamma distribution)
+  - Operation: Calculate the log-prior probability of $\sigma^2$, assuming a gamma distribution
   - Output: Log-prior probability
 
 #### Sampler Function
 
 - **Inputs**: X (predictors), Y (responses), nburn (number of burn-in iterations), nsim (number of simulation iterations), nthin (thinning parameter), $\tau^2$, a, b (prior parameters)
-- **Initialize**: Starting values for Beta_1, Beta_2, Beta_3, and sigma2; containers for chains of sampled values and acceptance rates
+- **Initialize**: Starting values for $\beta_1$, $\beta_2$, $\beta_3$, and $\sigma^2$; containers for chains of sampled values and acceptance rates
 - **For Each Iteration** (from 1 to nsim + nburn):
-  - **Update Beta_1** using Gibbs sampling:
+  - **Update $\beta_1$** using Gibbs sampling:
     - Let 
         $\sigma^{2}_{\beta}$ is the variance of prior distribution of $\beta_1$
         $\eta = \frac{1}{1 + \beta_2 \exp(\beta_3 X)}$ and $\zeta = X \cdot \eta$
@@ -410,22 +410,22 @@ gls <- load("./glm dat.RData")
         $$\mu_{\beta_1} =  \frac{\sigma^2_{\beta_1}}{\sigma^2}\zeta^T (Y - \eta) $$
       The posterior distribution for $\beta_1$
         $$\beta_1 \sim \mathcal{N}\left(\mu_{\beta_1}, {\sigma^2_{\beta_1}}\right)$$
-    - Compute new parameters eta and zeta based on current values of Beta_2 and Beta_3
-    - Calculate the posterior distribution of Beta_1 given eta, zeta, and sigma2, then sample from this distribution
-  - **Update Beta_2 and Beta_3** together using Metropolis-Hastings:
-    - Propose new values for Beta_2 and Beta_3 based on current values and a predefined step size
+    - Compute new parameters $\eta$ and $\zeta$ based on current values of $\beta_2$ and $\beta_3$
+    - Calculate the posterior distribution of $\beta_1$ given $\eta$, $\zeta$, and $\sigma^2$, then sample from this distribution
+  - **Update $\beta_2$ and $\beta_3$** together using Metropolis-Hastings:
+    - Propose new values for $\beta_2$ and $\beta_3$ based on current values and a predefined step size
     - Calculate the log-acceptance ratio based on the likelihood and prior probabilities of the proposed and current parameters
     - Accept or reject the proposed values based on the acceptance ratio
-  - **Update Sigma^2** using Metropolis-Hastings:
-    - Propose a new value for sigma2 from a gamma distribution
-    - Calculate the log-acceptance ratio based on the likelihood and prior probabilities of the proposed and current sigma2
+  - **Update $\sigma^2$** using Metropolis-Hastings:
+    - Propose a new value for $\sigma^2$ from a gamma distribution
+    - Calculate the log-acceptance ratio based on the likelihood and prior probabilities of the proposed and current $\sigma^2$
     - Accept or reject the proposed value based on the acceptance ratio
   - **Store Sampled Values** (after burn-in and according to thinning parameter):
-    - Save the current values of Beta_1, Beta_2, Beta_3, and sigma2 to their respective chains
-    - Record the acceptance rates for Beta_2, Beta_3, and sigma2 updates
-- **Output**: Return the chains of sampled values for Beta_1, Beta_2, Beta_3, and sigma2, along with the acceptance rates
+    - Save the current values of $\beta_1$, $\beta_2$, $\beta_3$, and $\sigma^2$ to their respective chains
+    - Record the acceptance rates for $\beta_2$, $\beta_3$, and $\sigma^2$ updates
+- **Output**: Return the chains of sampled values for $\beta_1$, $\beta_2$, $\beta_3$, and $\sigma^2$, along with the acceptance rates
 
-This sampler combines Gibbs sampling for updating Beta_1 and Metropolis-Hastings for updating Beta_2, Beta_3, and sigma2, to perform Bayesian inference on the given model.
+This sampler combines Gibbs sampling for updating $\beta_1$ and Metropolis-Hastings for updating $\beta_2$, $\beta_3$, and $\sigma^2$, to perform Bayesian inference on the given model.
 
 
 ```{r include=FALSE}
