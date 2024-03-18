@@ -348,6 +348,7 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 
 - $(\text{cov}_{\beta_1,\beta_2}, \text{cov}_{\beta_1,\beta_3},\text{cov}_{\beta_1,\beta_3})$ = `r cov_beta`
 
+
 ## Sensitivity analysis
 ```{r}
 # Function to calculate the weights for importance sampling based on new variances
@@ -373,18 +374,33 @@ weights_beta3 <- calculate_weights(result$Beta_3.chain, old_var = 10, new_var = 
 weighted_mean_beta1 <- sum(weights_beta1 * result$Beta_1.chain) / sum(weights_beta1)
 weighted_mean_beta2 <- sum(weights_beta2 * result$Beta_2.chain) / sum(weights_beta2)
 weighted_mean_beta3 <- sum(weights_beta3 * result$Beta_3.chain) / sum(weights_beta3)
-
-list(
-  weighted_mean_beta1 = weighted_mean_beta1,
-  weighted_mean_beta2 = weighted_mean_beta2,
-  weighted_mean_beta3 = weighted_mean_beta3
-)
 ```
+
+```{r}
+# Function to calculate weights for importance sampling, for the sigma^2 parameter
+calculate_weights_sigma2 <- function(sigma2_samples, old_shape, old_scale, new_shape, new_scale) {
+  # Calculate the density under the old prior
+  old_prior_density <- dgamma(sigma2_samples, shape = old_shape, scale = old_scale, log = TRUE)
+  
+  # Calculate the density under the new prior
+  new_prior_density <- dgamma(sigma2_samples, shape = new_shape, scale = new_scale, log = TRUE)
+  
+  # Calculate weights as the ratio of new prior density to old prior density
+  weights_sigma2 <- exp(new_prior_density - old_prior_density)
+  
+  return(weights_sigma2)
+}
+
+weights_sigma2 <- calculate_weights_sigma2(result$sigma2.chain, old_shape = 1, old_scale = 10, new_shape = 1, new_scale = 10)
+
+weighted_mean_sigma2 <- sum(weights_sigma2 * result$sigma2.chain) / sum(weights_sigma2)
+```
+
 
 - Posterior expectation for $\beta_1$ is `r weighted_mean_beta1`
 - Posterior expectation for $\beta_2$ is `r weighted_mean_beta2`
 - Posterior expectation for $\beta_3$ is `r weighted_mean_beta3`
-
+- Posterior expectation for $\sigma^2$ is `r weighted_mean_sigma2`
 
 
 ## Repeat Importance Sampling
@@ -399,16 +415,17 @@ weighted_mean_beta1_lv <- sum(weights_beta1_lv * result$Beta_1.chain) / sum(weig
 weighted_mean_beta2_lv <- sum(weights_beta2_lv * result$Beta_2.chain) / sum(weights_beta2_lv)
 weighted_mean_beta3_lv <- sum(weights_beta3_lv * result$Beta_3.chain) / sum(weights_beta3_lv)
 
-list(
-  weighted_mean_beta1_lv = weighted_mean_beta1_lv,
-  weighted_mean_beta2_lv = weighted_mean_beta2_lv,
-  weighted_mean_beta3_lv = weighted_mean_beta3_lv
-)
+
+weights_sigma2_lv <- calculate_weights_sigma2(result$sigma2.chain, old_shape = 1, old_scale = 10, new_shape = 1, new_scale = 10)
+
+weighted_mean_sigma2_lv <- sum(weights_sigma2_lv * result$sigma2.chain) / sum(weights_sigma2_lv)
+
 ```
 
 - Posterior expectation for $\beta_1$ is `r weighted_mean_beta1_lv`
 - Posterior expectation for $\beta_2$ is `r weighted_mean_beta2_lv`
 - Posterior expectation for $\beta_3$ is `r weighted_mean_beta3_lv`
+- Posterior expectation for $\sigma^2$ is `r weighted_mean_sigma2_lv`
 - Although our new prior is less informative, the results are still close to each other
 
 
