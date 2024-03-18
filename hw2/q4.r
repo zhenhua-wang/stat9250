@@ -1,28 +1,27 @@
 load("./hw2/glm dat.RData")
 
 ## * Block MH
-block_MH <- function(X, Y,
-                     sample_size, burning_size,
+block_MH <- function(sample_size, burning_size,
                      init_parameter, block_idxes,
                      logposterior, logproposal,
-                     proposal_func) {
+                     proposal_func, args) {
+  accept_rates <- matrix(0, sample_size, length(block_idxes))
   parameters <- matrix(NA, sample_size + 1, length(init_parameter))
   parameters[1, ] <- init_parameter
-  accept_rates <- matrix(0, sample_size, length(block_idxes))
   ## old target density
   parameter_current <- parameters[1, ]
-  pi.log <- logposterior(Y, X, parameter_current)
+  pi.log <- logposterior(parameter_current, args)
   for (i in 1:sample_size) {
     for (j in seq_along(block_idxes)) {
       ## propose parameters
-      parameter_star <- proposal_func(parameter_current, block_idxes[[j]])
+      parameter_star <- proposal_func(parameter_current, block_idxes[[j]], args)
       ## new target density
-      pi.log.star <- logposterior(Y, X, parameter_star)
+      pi.log.star <- logposterior(parameter_star, args)
       ## proposal density
-      q_xn_xstar <- logproposal(parameter_current,
-        parameter_star, block_idxes[[j]])
-      q_xstar_xn <- logproposal(parameter_star,
-        parameter_current, block_idxes[[j]])
+      q_xn_xstar <- logproposal(parameter_current, parameter_star,
+        block_idxes[[j]], args)
+      q_xstar_xn <- logproposal(parameter_star, parameter_current,
+        block_idxes[[j]], args)
       ## update
       alpha.log <- min(0, pi.log.star + q_xn_xstar - pi.log - q_xstar_xn)
       U.log <- log(runif(1))
@@ -42,8 +41,10 @@ block_MH <- function(X, Y,
 }
 
 ## * Density
-logposterior <- function(Y, X, parameter) {
+logposterior <- function(parameter, args) {
   tau <- sqrt(10)
+  Y <- args$Y
+  X <- args$X
   beta1 <- parameter[1]
   beta2 <- parameter[2]
   beta3 <- parameter[3]
@@ -61,38 +62,26 @@ logposterior <- function(Y, X, parameter) {
   return(pi.log)
 }
 
-logproposal <- function(para1, para2, idxes) {
+logproposal <- function(para1, para2, idxes, args) {
   density <- +
-    sum(dnorm(
-      para1[1], para2[1],
-      proposal_hyperparam$sd1, log = TRUE)) +
-    sum(dnorm(
-      para1[2], para2[2],
-      proposal_hyperparam$sd2, log = TRUE)) +
-    sum(dnorm(
-      para1[3], para2[3],
-      proposal_hyperparam$sd3, log = TRUE)) +
-    sum(dnorm(
-      para1[4], para2[4],
-      proposal_hyperparam$sd4, log = TRUE))
+    sum(dnorm(para1[1], para2[1], args$sd1, log = TRUE)) +
+    sum(dnorm(para1[2], para2[2], args$sd2, log = TRUE)) +
+    sum(dnorm(para1[3], para2[3], args$sd3, log = TRUE)) +
+    sum(dnorm(para1[4], para2[4], args$sd4, log = TRUE))
   return(density)
 }
 
-proposal <- function(parameter, idxes) {
+proposal <- function(parameter, idxes, args) {
   parameter_star <- parameter
   for (idx in idxes) {
     if (idx == 1) {
-      parameter_star[idx] <- rnorm(
-        1, parameter[idx], proposal_hyperparam$sd1)
+      parameter_star[idx] <- rnorm(1, parameter[idx], args$sd1)
     } else if (idx == 2) {
-      parameter_star[idx] <- rnorm(
-        1, parameter[idx], proposal_hyperparam$sd2)
+      parameter_star[idx] <- rnorm(1, parameter[idx], args$sd2)
     } else if (idx == 3) {
-      parameter_star[idx] <- rnorm(
-        1, parameter[idx], proposal_hyperparam$sd3)
+      parameter_star[idx] <- rnorm(1, parameter[idx], args$sd3)
     } else {
-      parameter_star[idx] <- rnorm(
-        1, parameter[idx], proposal_hyperparam$sd4)
+      parameter_star[idx] <- rnorm(1, parameter[idx], args$sd4)
     }
   }
   return(parameter_star)
@@ -101,17 +90,18 @@ proposal <- function(parameter, idxes) {
 ## * Tuning
 sample_size <- 200000
 burning_size <- 100000
-proposal_hyperparam <- list(
-  sd1 = 0.35, sd2 = 0.6, sd3 = 0.05, sd4 = 1.7)
 res_mcmc <- block_MH(
-  X = X, Y = Y,
-  sample_size = sample_size,
-  burning_size = burning_size,
+  sample_size = 200000,
+  burning_size = 100000,
   init_parameter = c(10, 1, 1, 1),
   block_idxes = list(1, 2, 3, 4),
   logposterior = logposterior,
   logproposal = logproposal,
-  proposal_func = proposal)
+  proposal_func = proposal,
+  args = list(
+    Y = Y, X = X,
+    sd1 = 0.35, sd2 = 0.6, sd3 = 0.05, sd4 = 1.7))
+sample_size <- dim(res_mcmc$samples)[1]
 
 ## * Evaluation
 effective_size <- function(samples) {
@@ -125,10 +115,10 @@ effective_size <- function(samples) {
 theta_mcmc <- res_mcmc$samples
 accept_mcmc <- res_mcmc$accept_rates
 par(mfrow = c(2, 2))
-plot(1:(sample_size - burning_size), theta_mcmc[, 1], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 2], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 3], type = "l")
-plot(1:(sample_size - burning_size), theta_mcmc[, 4], type = "l")
+plot(1:sample_size, theta_mcmc[, 1], type = "l")
+plot(1:sample_size, theta_mcmc[, 2], type = "l")
+plot(1:sample_size, theta_mcmc[, 3], type = "l")
+plot(1:sample_size, theta_mcmc[, 4], type = "l")
 mtext(paste(
   paste(sprintf("accept rate %.3f", apply(accept_mcmc, 2, mean)),
     collapse = ', '),
