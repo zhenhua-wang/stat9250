@@ -382,16 +382,16 @@ gls <- load("./glm dat.RData")
 #### Define the likelihood, prior for beta parameters, and prior for sigma^2
 
 - **Likelihood Function**
-  - Input: beta1, beta2, beta3, sigma2, X (predictors), Y (responses)
+  - Input: $\beta_1$, $\beta_2$, $\beta_3$, $\sigma^2$, X (predictors), Y (responses)
   - Operation: Calculate the predicted Y (y_pred) using a specific model formula
   - Output: Return the log-likelihood of Y given the predicted values, assuming a normal distribution
 
-- **Prior for $\Beta$**
+- **Prior for $\beta$**
   - Input: $\beta$s (parameter value), $\tau^2$ (variance)
   - Operation: Calculate the log-prior probability of beta, assuming a normal distribution with mean 0 and variance tau2
   - Output: Log-prior probability
 
-- **Prior for $\Sigma^2$**
+- **Prior for $\sigma^2$**
   - Input: $\sigma^2$, a, b (parameters for the gamma distribution)
   - Operation: Calculate the log-prior probability of $\sigma^2$, assuming a gamma distribution
   - Output: Log-prior probability
