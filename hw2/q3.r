@@ -60,7 +60,7 @@ prop_func1 <- function(X) {
   rbinom(16, 1, 0.5)
 }
 
-V <- matrix(0, 4, 4)
+V <- matrix(rbinom(16, 1, 0.5), 4, 4)
 sample_size <- 10000
 result <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
 samples <- result$samples
