@@ -244,6 +244,14 @@ gls <- load("/home/vinux/Documents/Homework/glm dat.RData")
 - **Initialize**: Starting values for Beta_1, Beta_2, Beta_3, and sigma2; containers for chains of sampled values and acceptance rates
 - **For Each Iteration** (from 1 to nsim + nburn):
   - **Update Beta_1** using Gibbs sampling:
+    - Let 
+        $\sigma^{2}_{\beta}$ is the variance of prior distribution of $\beta_1$
+        $\eta = \frac{1}{1 + \beta_2 \exp(\beta_3 X)}$ and $\zeta = X \cdot \eta$
+      We have         
+        $$\sigma^2_{\beta_1} = \left( \frac{\zeta^T\zeta} {\sigma^{2}} + \sigma^{-2}_{\beta} \right)^{-1}$$
+        $$\mu_{\beta_1} =  \frac{\sigma^2_{\beta_1}}{\sigma^2}\zeta^T (Y - \eta) $$
+      The posterior distribution for $\beta_1$
+        $$\beta_1 \sim \mathcal{N}\left(\mu_{\beta_1}, {\sigma^2_{\beta_1}}\right)$$
     - Compute new parameters eta and zeta based on current values of Beta_2 and Beta_3
     - Calculate the posterior distribution of Beta_1 given eta, zeta, and sigma2, then sample from this distribution
   - **Update Beta_2 and Beta_3** together using Metropolis-Hastings:
