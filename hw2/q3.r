@@ -28,6 +28,7 @@ metropolis <- function(true_dens, prop_func,
                        X_init, sample_size, lambda) {
   X <- X_init
   samples <- matrix(NA, sample_size, length(X_init))
+  accept_rate <- rep(0, sample_size)
   for (i in 1:sample_size) {
     X_new <- prop_func(X)
     alpha <- min(1, true_dens(X_new, lambda) / true_dens(X, lambda))
@@ -35,11 +36,12 @@ metropolis <- function(true_dens, prop_func,
     if (U < alpha) {
       samples[i, ] <- X_new
       X <- X_new
+      accept_rate[i] <- 1
     } else {
       samples[i, ] <- X
     }
   }
-  return(samples)
+  return(list(samples = samples, accept_rate = accept_rate))
 }
 
 true_dens <- function(V, lambda) {
@@ -60,7 +62,8 @@ prop_func1 <- function(X) {
 
 V <- matrix(0, 4, 4)
 sample_size <- 10000
-samples <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
+result <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
+samples <- result$samples
 plot(1:sample_size, apply(samples, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "N(X)",
   main = sprintf("Probability for algo 1, lambda = 0.5: %.3f",
@@ -79,13 +82,15 @@ prop_func2 <- function(X) {
   return(X)
 }
 
-samples <- metropolis(true_dens, prop_func2, V, sample_size, 0.5)
+result <- metropolis(true_dens, prop_func2, V, sample_size, 0.5)
+samples <- result$samples
 plot(1:sample_size, apply(samples, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "N(X)",
   main = sprintf("Probability for algo 2, lambda = 0.5: %.3f",
     mean(apply(samples, 1, diag_all_one))))
 
-samples <- metropolis(true_dens, prop_func2, V, sample_size, 1)
+result <- metropolis(true_dens, prop_func2, V, sample_size, 1)
+samples <- result$samples
 plot(1:sample_size, apply(samples, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "N(X)",
   main = sprintf("Probability for algo 2, lambda = 1: %.3f",
