@@ -69,7 +69,8 @@ plot(1:sample_size, apply(samples, 1, D),
   main = sprintf("Probability for algo 1, lambda = 0.5: %.3f",
     mean(apply(samples, 1, diag_all_one))))
 
-samples <- metropolis(true_dens, prop_func1, V, sample_size, 1)
+result <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
+samples <- result$samples
 plot(1:sample_size, apply(samples, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "N(X)",
   main = sprintf("Probability for algo 1, lambda = 1: %.3f",

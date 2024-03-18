@@ -248,18 +248,18 @@ The objective of this problem is to estimate the probability the diagonal of a m
 
 $$\pi(X) \propto  p^{N(X)}(1 - p)^{16 - N(X)} \text{exp}\{-\lambda D(X)\}.$$
 
-where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the total number of neighbors (horizontal or vertical).
--  The matrix M is given by:
+where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the sum of the absolute values of $MV$. $V$ is the flattened vector of $X$ and $M$ is given by:
 
-\begin{pmatrix}
- 1 & -1 &  0 &  0 &  0 & \cdots &  0 &  0 &  0 &  0  &  0\\
- \vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots\\
- 0 &  0 &  0 &  0 &  0 & \cdots &  0 &  0 &  0 &  1  &  -1\\
- 
- 1 &  0 &  0 &  0 & -1 & \cdots  &  0 &  0 &  0 &  0 & 0\\
- \vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots\\
- 0 &  0 &  0 &  0 & 0 & \cdots &  1 &  0 &  0 &  0 & -1 \\
-\end{pmatrix}
+$$
+\left( \begin{array}{ccccccccccc}
+1 & -1 & 0 & 0 & 0 & \cdots & 0 & 0 & 0 & 0 & 0 \\
+\vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+0 & 0 & 0 & 0 & 0 & \cdots & 0 & 0 & 0 & 1 & -1 \\
+1 & 0 & 0 & 0 & -1 & \cdots & 0 & 0 & 0 & 0 & 0 \\
+\vdots & \vdots & \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+0 & 0 & 0 & 0 & 0 & \cdots & 1 & 0 & 0 & 0 & -1
+\end{array} \right)
+$$
 
 ### (1) Algorithm Description
 
@@ -560,7 +560,7 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
 }
 ```
 
-## (1) Pseudocode for final MCMC algorithm
+### (1) Pseudocode for final MCMC algorithm
 ```{r}
 ## Read the data
 gls <- load("./glm dat.RData")
@@ -619,7 +619,7 @@ This sampler combines Gibbs sampling for updating $\beta_1$ and Metropolis-Hasti
 result <- mix_sampler(X, Y, 100000, 100000, 1)
 ```
 
-## (2) Diagnostics 
+### (2) Diagnostics 
 ```{r include=FALSE}
 ## * Prediction using posterior mean
 beta1.posmean <- mean(result$Beta_1.chain[1,])
@@ -645,15 +645,17 @@ plot(X_grid, Y_grid, type = "l")
 points(X, Y)
 ```
 
+- The acceptance rate for $\beta$ is `r mean(result$acceptance_beta)`
+- The acceptance rate for $\sigma^2$ is `r mean(result$acceptance_sigma)`
 - By comparing the true value with estimated model. We can the true values is located around the model, which implies that the model could predict expectation well.
 
 
-## Summarize approximations of the posterior expectations
+### (3) Summarize approximations of the posterior expectations
 
 - posterior mean for $\beta_1$ is `r beta1.posmean`; $\beta_2$ is `r beta2.posmean`; $\beta_2$ is `r beta1.posmean`; $\sigma^2$ is `r beta4.posmean`
 - posterior standard deviation for $\beta_1$ is `r beta1.se`;  $\beta_2$ is `r beta2.se`;  $\beta_3$ is `r beta3.se`;  $\sigma^2$ is `r beta4.se`
 
-## Plot posterior PDFs
+### (4) Plot posterior PDFs
 
 ```{r}
 par(mfrow = c(2, 2))
@@ -663,7 +665,7 @@ plot(density(result$Beta_3.chain[1,]), main = "Beta 3")
 plot(density(result$sigma2.chain), main = "Sigma 2")
 ```
 
-## Check correlation 
+### (5) Check correlation 
 ```{r include=FALSE}
 ## check the correlation between the parameters using corrlation matrix plot
 df <- cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain)
@@ -702,7 +704,7 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 - $(\text{cov}_{\beta_1,\beta_2}, \text{cov}_{\beta_1,\beta_3},\text{cov}_{\beta_1,\beta_3})$ = `r cov_beta`
 
 
-## Sensitivity analysis
+### (6) Sensitivity analysis
 ```{r}
 # Function to calculate the weights for importance sampling based on new variances
 calculate_weights <- function(beta_samples, old_var, new_var) {
@@ -755,8 +757,7 @@ weighted_mean_sigma2 <- sum(weights_sigma2 * result$sigma2.chain) / sum(weights_
 - Posterior expectation for $\beta_3$ is `r weighted_mean_beta3`
 - Posterior expectation for $\sigma^2$ is `r weighted_mean_sigma2`
 
-
-## Repeat Importance Sampling
+### (7) Repeat Importance Sampling
 ```{r}
 # Calculate weights for each beta based on the new variance
 weights_beta1_lv <- calculate_weights(result$Beta_1.chain, old_var = 10, new_var = 50)
