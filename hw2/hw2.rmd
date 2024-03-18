@@ -111,4 +111,305 @@ where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the total nu
 
 # Problem 4
 
+```{r echo=FALSE}
+## Build the sampler function
+# Define the model and priors
+likelihood <- function(beta1, beta2, beta3, sigma2, X, Y) {
+  y_pred <- (1 + beta1 * X)/(1 + beta2 * exp(beta3 * X))
+  return(dnorm(Y, mean = y_pred, sd = sqrt(sigma2), log = TRUE))
+}
+
+prior_beta <- function(beta, tau2 = 10) {
+  dnorm(beta, mean = 0, sd = sqrt(tau2), log = TRUE) # Non-informative prior
+}
+
+prior_sigma2 <- function(sigma2, a, b) {
+  dgamma(sigma2, shape = a, scale = b, log = TRUE)
+}
+
+
+## Using gibbs sampler for Beta 1 and Matropolis-Hastings for rest of the parameters
+## Treat the Beta 2 and Beta 3 as the block
+mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
+  m <- nrow(X)
+  p <- ncol(X)
+  inv.sigma.beta <- 1/tau2
+
+  # Initial values
+  Beta_1 <- 10
+  Beta_2 <- 1
+  Beta_3 <- 1 
+  sigma2 <- 1
+
+  # Chain containers
+  Beta_1.chain <- array(0, dim = c(1, nsim / nthin))
+  Beta_2.chain <- array(0, dim = c(1, nsim / nthin))
+  Beta_3.chain <- array(0, dim = c(1, nsim / nthin))
+  sigma2.chain <- rep(0, nsim / nthin)
+  acceptance_beta.chain <- rep(0, nsim / nthin)
+  acceptance_sigma.chain <- rep(0, nsim / nthin)
+
+  for (index in 1:(nsim + nburn)) {
+    if (index %% 10000 == 0) cat(index, "\n")
+    # Define new parameters
+    eta <- 1/(1 + Beta_2 * exp(Beta_3 * X))
+    zeta <- X * eta
+
+    # Update Beta 1
+    var.Beta_1 <- solve(t(zeta) %*% zeta / sigma2 + inv.sigma.beta)
+    mean.Beta_1 <- var.Beta_1 %*% (t(zeta) %*% (Y - eta) / sigma2)
+    Beta_1 <- rnorm(1, mean.Beta_1, sqrt(var.Beta_1))
+    
+    # Update Beta 2 and Beta 3
+
+    # Propose new values
+    proposed_beta_2 <- rnorm(1, mean = Beta_2, sd = 0.05)
+    proposed_beta_3 <- rnorm(1, mean = Beta_3, sd = 0.05)
+    
+    # Compute acceptance ratio
+    log_acceptance_ratio_beta <- sum(likelihood(Beta_1, proposed_beta_2, proposed_beta_3, sigma2, X, Y)) +
+      prior_beta(proposed_beta_2) + prior_beta(proposed_beta_3) -
+      sum(likelihood(Beta_1, Beta_2, Beta_3, sigma2, X, Y)) -
+      prior_beta(Beta_2) - prior_beta(Beta_3)
+
+    # Accept or reject for Beta 2 and Beta 3
+    if(log(runif(1)) < log_acceptance_ratio_beta) {
+      Beta_2 <- proposed_beta_2
+      Beta_3 <- proposed_beta_3
+      acceptance_beta <- 1
+    } else {
+      Beta_2 <- Beta_2
+      Beta_3 <- Beta_3
+      acceptance_beta <- 0
+    }
+    
+    # Update Sigma2
+    # Propose sigma2
+    proposed_sigma2 <- rgamma(1, shape = 8, scale = 0.5)
+
+    # Compute acceptance ratio
+    log_acceptance_ratio_sigma2 <- sum(likelihood(Beta_1, Beta_2, Beta_3, proposed_sigma2, X, Y)) +
+      prior_sigma2(proposed_sigma2, a, b) -
+      sum(likelihood(Beta_1, Beta_2, Beta_3, sigma2, X, Y)) -
+      prior_sigma2(sigma2, a, b)
+
+    if(log(runif(1)) < log_acceptance_ratio_sigma2) {
+      sigma2 <- proposed_sigma2
+      acceptance_sigma <- 1
+    } else {
+      sigma2 <- sigma2
+      acceptance_sigma <- 0
+    }
+
+    
+    if (index > nburn && (index - nburn) %% nthin == 0) {
+      Beta_1.chain[, (index - nburn) / nthin] <- Beta_1
+      Beta_2.chain[, (index - nburn) / nthin] <- Beta_2
+      Beta_3.chain[, (index - nburn) / nthin] <- Beta_3
+      sigma2.chain[(index - nburn) / nthin] <- sigma2
+      acceptance_beta.chain[(index - nburn) / nthin] <- acceptance_beta
+      acceptance_sigma.chain[(index - nburn) / nthin] <- acceptance_sigma
+    }
+  }
+
+  list(Beta_1.chain = Beta_1.chain, Beta_2.chain = Beta_2.chain, Beta_3.chain = Beta_3.chain, sigma2.chain = sigma2.chain, 
+  acceptance_beta = acceptance_beta.chain, acceptance_sigma = acceptance_sigma.chain)
+}
+```
+
+## (1) Pseudocode for final MCMC algorithm
+```{r}
+## Read the data
+gls <- load("/home/vinux/Documents/Homework/glm dat.RData")
+```
+
+#### Define the likelihood, prior for beta parameters, and prior for sigma^2
+
+- **Likelihood Function**
+  - Input: beta1, beta2, beta3, sigma2, X (predictors), Y (responses)
+  - Operation: Calculate the predicted Y (y_pred) using a specific model formula
+  - Output: Return the log-likelihood of Y given the predicted values, assuming a normal distribution
+
+- **Prior for Beta**
+  - Input: beta (parameter value), tau2 (variance)
+  - Operation: Calculate the log-prior probability of beta, assuming a normal distribution with mean 0 and variance tau2
+  - Output: Log-prior probability
+
+- **Prior for Sigma^2**
+  - Input: sigma2, a, b (parameters for the gamma distribution)
+  - Operation: Calculate the log-prior probability of sigma^2, assuming a gamma distribution
+  - Output: Log-prior probability
+
+#### Sampler Function
+
+- **Inputs**: X (predictors), Y (responses), nburn (number of burn-in iterations), nsim (number of simulation iterations), nthin (thinning parameter), $\tau^2$, a, b (prior parameters)
+- **Initialize**: Starting values for Beta_1, Beta_2, Beta_3, and sigma2; containers for chains of sampled values and acceptance rates
+- **For Each Iteration** (from 1 to nsim + nburn):
+  - **Update Beta_1** using Gibbs sampling:
+    - Compute new parameters eta and zeta based on current values of Beta_2 and Beta_3
+    - Calculate the posterior distribution of Beta_1 given eta, zeta, and sigma2, then sample from this distribution
+  - **Update Beta_2 and Beta_3** together using Metropolis-Hastings:
+    - Propose new values for Beta_2 and Beta_3 based on current values and a predefined step size
+    - Calculate the log-acceptance ratio based on the likelihood and prior probabilities of the proposed and current parameters
+    - Accept or reject the proposed values based on the acceptance ratio
+  - **Update Sigma^2** using Metropolis-Hastings:
+    - Propose a new value for sigma2 from a gamma distribution
+    - Calculate the log-acceptance ratio based on the likelihood and prior probabilities of the proposed and current sigma2
+    - Accept or reject the proposed value based on the acceptance ratio
+  - **Store Sampled Values** (after burn-in and according to thinning parameter):
+    - Save the current values of Beta_1, Beta_2, Beta_3, and sigma2 to their respective chains
+    - Record the acceptance rates for Beta_2, Beta_3, and sigma2 updates
+- **Output**: Return the chains of sampled values for Beta_1, Beta_2, Beta_3, and sigma2, along with the acceptance rates
+
+This sampler combines Gibbs sampling for updating Beta_1 and Metropolis-Hastings for updating Beta_2, Beta_3, and sigma2, to perform Bayesian inference on the given model.
+
+
+```{r include=FALSE}
+result <- mix_sampler(X, Y, 100000, 100000, 1)
+```
+
+## (2) Diagnostics 
+```{r include=FALSE}
+## * Prediction using posterior mean
+beta1.posmean <- mean(result$Beta_1.chain[1,])
+beta2.posmean <- mean(result$Beta_2.chain[1,])
+beta3.posmean <- mean(result$Beta_3.chain[1,])
+beta4.posmean <- mean(result$sigma2.chain)
+
+beta1.se <- sqrt(var(result$Beta_1.chain[1,]))
+beta2.se <- sqrt(var(result$Beta_2.chain[1,]))
+beta3.se <- sqrt(var(result$Beta_3.chain[1,]))
+beta4.se <- sqrt(var(result$sigma2.chain))
+
+beta1.var <- var(result$Beta_1.chain[1,])
+beta2.var <- var(result$Beta_2.chain[1,])
+beta3.var <- var(result$Beta_3.chain[1,])
+X_grid <- seq(0.001, 10, length.out = 10000)
+Y_grid <- (1 + beta1.posmean * X_grid) /
+  (1 + beta2.posmean * exp(beta3.posmean * X_grid))
+```
+
+```{r include=FALSE}
+plot(X_grid, Y_grid, type = "l")
+points(X, Y)
+```
+
+- By comparing the true value with estimated model. We can the true values is located around the model, which implies that the model could predict expectation well.
+
+
+## Summarize approximations of the posterior expectations
+
+- posterior mean for $\beta_1$ is `r beta1.posmean`; $\beta_2$ is `r beta2.posmean`; $\beta_2$ is `r beta1.posmean`; $\sigma^2$ is `r beta4.posmean`
+- posterior standard deviation for $\beta_1$ is `r beta1.se`;  $\beta_2$ is `r beta2.se`;  $\beta_3$ is `r beta3.se`;  $\sigma^2$ is `r beta4.se`
+
+## Plot posterior PDFs
+
+```{r}
+par(mfrow = c(2, 2))
+plot(density(result$Beta_1.chain[1,]), main = "Beta 1")
+plot(density(result$Beta_2.chain[1,]), main = "Beta 2")
+plot(density(result$Beta_3.chain[1,]), main = "Beta 3")
+plot(density(result$sigma2.chain), main = "Sigma 2")
+```
+
+## Check correlation 
+```{r warning=FALSE}
+## check the correlation between the parameters using corrlation matrix plot
+df <- cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain)
+cor_matrix <- cor(cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain))
+cov_beta <- c(cov(df)[1,2], cov(df)[1,3], cov(df)[2,3])
+chart.Correlation(df, histogram=TRUE, pch=19)
+```
+
+- From the correlation matrix, we can see that the correlations is rather high for $\beta_1$, $\beta_2$ 0.93,  $\beta_1$ and $beta_3$ 0.88 and  $\beta_2$ and  $\beta_3$ 0.97 has rather high correlation.
+
+- The joint distribution of \((\beta_1, \beta_2)\) is given by:
+
+\[
+\begin{pmatrix} {\beta_1} \\ {\beta_2} \end{pmatrix} \sim \mathcal{N}\left(\begin{pmatrix} \mu_{\beta_1} \\ \mu_{\beta_2} \end{pmatrix}, \begin{pmatrix} \sigma^2_{\beta_1} & \text{cov}_{\beta_1,\beta_2} \\ \text{cov}_{\beta_1,\beta_2} & \sigma^2_{\beta_2} \end{pmatrix}\right)
+\]
+
+
+- The joint distribution of \((\beta_1, \beta_3)\) is given by:
+
+\[
+\begin{pmatrix} {\beta_1} \\ {\beta_3} \end{pmatrix} \sim \mathcal{N}\left(\begin{pmatrix} \mu_{\beta_1} \\ \mu_{\beta_3} \end{pmatrix}, \begin{pmatrix} \sigma^2_{\beta_1} & \text{cov}_{\beta_1,\beta_3} \\ \text{cov}_{\beta_1,\beta_3} & \sigma^2_{\beta_3} \end{pmatrix}\right)
+\]
+
+- The joint distribution of \((\beta_2, \beta_3)\) is given by:
+
+\[
+\begin{pmatrix} {\beta_2} \\ {\beta_3} \end{pmatrix} \sim \mathcal{N}\left(\begin{pmatrix} \mu_{\beta_2} \\ \mu_{\beta_3} \end{pmatrix}, \begin{pmatrix} \sigma^2_{\beta_2} & \text{cov}_{\beta_2,\beta_3} \\ \text{cov}_{\beta_2,\beta_3} & \sigma^2_{\beta_3} \end{pmatrix}\right)
+\]
+
+- $\mu_{\beta_1}$ is `r beta1.posmean`; $\mu_{\beta_2}$ is `r beta2.posmean`; $\mu_{\beta_3}$ is `r beta1.posmean`
+
+- $\sigma^2_{\beta_1}$ is `r beta1.var`; $\sigma^2_{\beta_1}$ is `r beta2.var`;  $\sigma^2_{\beta_1}$ is `r beta3.var`
+
+- $(\text{cov}_{\beta_1,\beta_2}, \text{cov}_{\beta_1,\beta_3},\text{cov}_{\beta_1,\beta_3})$ = `r cov_beta`
+
+## Sensitivity analysis
+```{r}
+# Function to calculate the weights for importance sampling based on new variances
+calculate_weights <- function(beta_samples, old_var, new_var) {
+  # Calculate the density under the old priors
+  old_prior_density <- dnorm(beta_samples, mean = 0, sd = sqrt(old_var), log = TRUE)
+  
+  # Calculate the density under the new priors
+  new_prior_density <- dnorm(beta_samples, mean = 0, sd = sqrt(new_var), log = TRUE)
+  
+  # Calculate weights as the ratio of new prior density to old prior density
+  weights <- exp(new_prior_density - old_prior_density)
+  
+  return(weights)
+}
+
+# Calculate weights for each beta based on the new variance
+weights_beta1 <- calculate_weights(result$Beta_1.chain, old_var = 10, new_var = 5)
+weights_beta2 <- calculate_weights(result$Beta_2.chain, old_var = 10, new_var = 5)
+weights_beta3 <- calculate_weights(result$Beta_3.chain, old_var = 10, new_var = 5)
+
+# Calculate the weighted expectations for each parameter
+weighted_mean_beta1 <- sum(weights_beta1 * result$Beta_1.chain) / sum(weights_beta1)
+weighted_mean_beta2 <- sum(weights_beta2 * result$Beta_2.chain) / sum(weights_beta2)
+weighted_mean_beta3 <- sum(weights_beta3 * result$Beta_3.chain) / sum(weights_beta3)
+
+list(
+  weighted_mean_beta1 = weighted_mean_beta1,
+  weighted_mean_beta2 = weighted_mean_beta2,
+  weighted_mean_beta3 = weighted_mean_beta3
+)
+```
+
+- Posterior expectation for $\beta_1$ is `r weighted_mean_beta1`
+- Posterior expectation for $\beta_2$ is `r weighted_mean_beta2`
+- Posterior expectation for $\beta_3$ is `r weighted_mean_beta3`
+
+
+
+## Repeat Importance Sampling
+```{r}
+# Calculate weights for each beta based on the new variance
+weights_beta1_lv <- calculate_weights(result$Beta_1.chain, old_var = 10, new_var = 50)
+weights_beta2_lv <- calculate_weights(result$Beta_2.chain, old_var = 10, new_var = 50)
+weights_beta3_lv <- calculate_weights(result$Beta_3.chain, old_var = 10, new_var = 50)
+
+# Calculate the weighted expectations for each parameter
+weighted_mean_beta1_lv <- sum(weights_beta1_lv * result$Beta_1.chain) / sum(weights_beta1_lv)
+weighted_mean_beta2_lv <- sum(weights_beta2_lv * result$Beta_2.chain) / sum(weights_beta2_lv)
+weighted_mean_beta3_lv <- sum(weights_beta3_lv * result$Beta_3.chain) / sum(weights_beta3_lv)
+
+list(
+  weighted_mean_beta1_lv = weighted_mean_beta1_lv,
+  weighted_mean_beta2_lv = weighted_mean_beta2_lv,
+  weighted_mean_beta3_lv = weighted_mean_beta3_lv
+)
+```
+
+- Posterior expectation for $\beta_1$ is `r weighted_mean_beta1_lv`
+- Posterior expectation for $\beta_2$ is `r weighted_mean_beta2_lv`
+- Posterior expectation for $\beta_3$ is `r weighted_mean_beta3_lv`
+- Although our new prior is less informative, the results are still close to each other
+
+
 # Appendix
