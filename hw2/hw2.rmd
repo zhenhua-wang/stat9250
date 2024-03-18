@@ -246,7 +246,7 @@ curve(true_density, from = 1e-5, to = 60,
 # Problem 3
 The objective of this problem is to estimate the probability the diagonal of a matrix $X$ is all 1’s. The probability distribution of the matrix is as follows,
 
-$$\pi(X) \propto  p^{N(X)}(1 - p)^{16 - N(X)} exp\{-\lambda D(X)\}.$$
+$$\pi(X) \propto  p^{N(X)}(1 - p)^{16 - N(X)} \text{exp}\{-\lambda D(X)\}.$$
 
 where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the total number of neighbors (horizontal or vertical).
 
