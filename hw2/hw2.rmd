@@ -373,7 +373,7 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
 }
 ```
 
-## (1) Pseudocode for final MCMC algorithm
+### (1) Pseudocode for final MCMC algorithm
 ```{r}
 ## Read the data
 gls <- load("./glm dat.RData")
@@ -432,7 +432,7 @@ This sampler combines Gibbs sampling for updating $\beta_1$ and Metropolis-Hasti
 result <- mix_sampler(X, Y, 100000, 100000, 1)
 ```
 
-## (2) Diagnostics 
+### (2) Diagnostics 
 ```{r include=FALSE}
 ## * Prediction using posterior mean
 beta1.posmean <- mean(result$Beta_1.chain[1,])
@@ -458,6 +458,8 @@ plot(X_grid, Y_grid, type = "l")
 points(X, Y)
 ```
 
+- The acceptance rate for $\beta$ is `r mean(result$acceptance_beta)`
+- The acceptance rate for $\sigma^2$ is `r mean(result$acceptance_sigma)`
 - By comparing the true value with estimated model. We can the true values is located around the model, which implies that the model could predict expectation well.
 
 
