@@ -21,6 +21,7 @@ F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg
 \end{align}
 
 Then we proceeded to use the three different ways to intergate this function in python and C++ using gsl. Complete code is submitted with the homework. The below figure shows the estimate of the CDF for the two different values of $\delta$ and for different ranges of $X$.
+
 ![](q1plot.png){width="70%"}
 
 ## Define integrand in Python
