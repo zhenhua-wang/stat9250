@@ -26,17 +26,22 @@ Then we proceeded to use the three different ways to intergate this function in 
 ![](q1plot.png){width="70%"}
 
 # Problem 2
+
+The objective of this problem is to obtain a sample from the exponentially tilted positive stable distribution which has the following pdf.
+$$
 \begin{align*}
 f(x; \theta)
-&= \sqrt{\frac{1}{4\pi}} \frac{\text{exp}(-\frac{1}{4x} - \theta x)}{x^{3/2} \text{exp}(-\sqrt{\theta})} \\
-&= \frac{\text{exp}(-\frac{1}{4x} - \theta x +\sqrt{\theta})}{4\pi x^{3/2}}
+&= \sqrt{\frac{1}{4\pi}} \frac{\text{exp}(-\frac{1}{4x} - \theta x)}{x^{3/2} \text{exp}(-\sqrt{\theta})} = \frac{\text{exp}(-\frac{1}{4x} - \theta x +\sqrt{\theta})}{\sqrt{4\pi} x^{3/2}}
 \end{align*}
-
-Proposal distribution
+$$
+To sample from this distribution we use an exponential distribution with rate 0.09 as our proposal dtsribution which has the pdf $q(x)$ as below.
 $$
 q(x) = 0.09 e^{-0.09x}
 $$
 
+Then we use a rejection sampling technique to obtain the 100000 sample. The first step in the rejection sampling was to determine  $k$, the rejection factor. This was set by obtaining the maximum of the ratio of $f(x)/q(x)$ from a random sample. Based on our proposal distribution we set $k$ as 15.
+
+We were able to replicate figure 3 based on our rejection sampling technique. 
 ```{r message=FALSE, warning=FALSE}
 true_density <- function(x, theta = 0.1) {
   exp(-1/(4*x) - theta*x + sqrt(theta)) / (sqrt(4*pi) * x^(3/2))
@@ -94,6 +99,15 @@ curve(true_density, from = 1e-5, to = 60,
 ```
 
 # Problem 3
+The objective of this problem is to estimate the probability the diagonal of a matrix $X$ is all 1’s. The probability distribution of the matrix is as follows,
+
+$$\pi(X) \propto  p^{N(X)}(1 − p)^{16−N(X)} exp\{−λD(X)\}.$$
+
+where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the total number of neighbors (horizontal or vertical). 
+
+### (1) Algorithm Description
+
+### (2)
 
 # Problem 4
 
