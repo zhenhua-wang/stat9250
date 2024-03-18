@@ -263,7 +263,194 @@ where $N(X)$ is the total number of successes in $X$  and $D(X)$ is the total nu
 
 ### (1) Algorithm Description
 
-### (2)
+We built our MCMC with Metropolis updates since both $Q_1$ and $Q_2$ proposal algorithms are symmetric.
+* - initial values - We generated a random $X$ matrix using independent Bernoulli random variables. 
+* - $Q_1$ proposal algorithm - Used 16 iid Bernoulli random variables with 0.5 probability of success i.e.rbinom(16,1,0.5) to create $X$.
+* - $Q_2$ proposal algorithm - First a location index of the matrix was selected by using sample(16, 1, replace = TRUE, prob = rep(0.0625, 16)). Then rbinom(1,1,0.5) was used to set the entry of the selected location to 1 or 0.
+* - acceptance probability - $\alpha = min\{1,\pi(X^*)/\pi(X)\}$
+* - Parameters - $N(X)$ and $D(X)$ parameters behavior was observed to understand model performance. 
+* - Number of iterations - 200,000 iterations gave required results.
+
+### (2) Algorithm Comparison 
+
+The figure shows the acceptance rate over time. From the top row of the figure we can see that the acceptance rate is very low for the proposal algorithm $Q_1$ whereas $Q_2$ has a good acceptance rate over time. Hence we believe that $Q_2$ results in a faster mixing MCMC.
+
+```{r message=FALSE, warning=FALSE}
+library(batchmeans)
+
+X <- matrix(c(1,0,0,0,
+              1,1,0,0,
+              0,0,0,0,
+              0,0,0,0), ncol = 4, nrow = 4)
+
+
+M1_base <- cbind(diag(3), rep(0, 3)) + cbind(rep(0, 3), -diag(3))
+M1 <- rbind(
+  cbind(M1_base, matrix(0, 3, 12)),
+  cbind(matrix(0, 3, 4), M1_base, matrix(0, 3, 8)),
+  cbind(matrix(0, 3, 8), M1_base, matrix(0, 3, 4)),
+  cbind(matrix(0, 3, 12), M1_base))
+M2_base <- cbind(diag(4), -diag(4))
+M2 <- rbind(
+  cbind(M2_base, matrix(0, 4, 8)),
+  cbind(matrix(0, 4, 4), M2_base, matrix(0, 4, 4)),
+  cbind(matrix(0, 4, 8), M2_base))
+M <- rbind(M1, M2)
+
+
+#test D
+X <- matrix(c(1,0,0,0,
+              0,0,0,0,
+              0,0,0,0,
+              0,0,0,0), ncol = 4, nrow = 4)
+sum(abs(M%*%as.vector(X)))
+X <- matrix(c(1,0,0,0,
+              1,1,0,0,
+              0,0,0,0,
+              0,0,0,0), ncol = 4, nrow = 4)
+sum(abs(M%*%as.vector(X)))
+
+#density of X
+prob_dist <- function(lambda, X){
+  N_X <- sum(X)
+  D_X <- sum(abs(M%*%as.vector(X)))
+  prob <- 0.8^N_X * 0.2^(16-N_X) * exp(-lambda*D_X)
+  return(prob)
+}
+
+log_prob_dist <- function(lambda, X){
+  N_X <- sum(X)
+  D_X <- sum(abs(M%*%as.vector(X)))
+  prob <- N_X * log(0.8)  + (16-N_X)*log(0.2) - lambda*D_X
+  return(prob)
+}
+
+
+Q1 <- function(X){
+  X_star <- matrix(rbinom(16,1,0.5), nrow = 4, ncol = 4)
+  return(X_star)
+}
+
+Q2 <- function(X){
+  loc <- sample(16, 1, replace = TRUE, prob = rep(0.0625, 16))
+  X[loc] <- rbinom(1,1,0.5)
+  return(X)
+}
+
+#MCMC
+MCMC <- function(X, N, Q, lambda){
+  jump_trace <- array(0,N)
+  N_X <- array(NA,N)
+  D_X <- array(NA,N)
+  #X_mat_array <- array(NA, dim = c(N,4,4))
+  for (i in 1:N) {
+    X_new <- Q(X)
+    ratio <- prob_dist(lambda, X_new)/prob_dist(lambda, X)
+    alpha <- min(1,ratio)
+    if(runif(1) < alpha){
+      X <- X_new
+      jump_trace[i] <- 1
+    }
+    #if((i%%10000) == 0)
+    #  print(paste0("Done with ",i))
+    #X_mat_array[i,,] <- X 
+    N_X[i] <- sum(X)
+    D_X[i] <- sum(abs(M%*%as.vector(X)))
+  }
+  return(list(N_X = N_X, D_X = D_X, jump_trace = jump_trace))
+}
+
+X_init <- matrix(rbinom(16,1,0.5), nrow = 4, ncol = 4)
+lambda <- c(0.5,1)
+N <- 200000
+q1_lambda1 <- MCMC(X_init, N, Q1, lambda[1])
+q1_lambda2 <- MCMC(X_init, N, Q1, lambda[2])
+q2_lambda1 <- MCMC(X_init, N, Q2, lambda[1])
+q2_lambda2 <- MCMC(X_init, N, Q2, lambda[2])
+
+
+par(mfrow = c(2,2))
+cumulative_sums <- cumsum(q1_lambda1$jump_trace)
+acc_prob <- cumulative_sums/1:N
+plot(10000:N, acc_prob[10000:N], type = "l", 
+     main = bquote(paste("Q1 and ",lambda == .(lambda[1]))), 
+     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
+
+cumulative_sums <- cumsum(q1_lambda2$jump_trace)
+acc_prob <- cumulative_sums/1:N
+plot(10000:N, acc_prob[10000:N], type = "l", 
+     main = bquote(paste("Q1 and ",lambda == .(lambda[2]))), 
+     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
+
+cumulative_sums <- cumsum(q2_lambda1$jump_trace)
+acc_prob <- cumulative_sums/1:N
+plot(10000:N, acc_prob[10000:N], type = "l", 
+     main = bquote(paste("Q2 and ",lambda == .(lambda[1]))), 
+     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
+
+cumulative_sums <- cumsum(q2_lambda2$jump_trace)
+acc_prob <- cumulative_sums/1:N
+plot(10000:N, acc_prob[10000:N], type = "l", 
+     main = bquote(paste("Q2 and ",lambda == .(lambda[1]))), 
+     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
+
+mean(q2_lambda1$jump_trace)
+
+## ESS
+acf_q1_l1 <- acf(q1_lambda1$N_X, plot = FALSE)
+ESS_q1_l1 <- N/(1+sum(acf_q1_l1$acf))
+acf_q1_l2 <- acf(q1_lambda2$N_X, plot = FALSE)
+ESS_q1_l2 <- N/(1+sum(acf_q1_l2$acf))
+
+acf_q2_l1 <- acf(q2_lambda1$N_X, plot = FALSE)
+ESS_q2_l1<- N/(1+sum(acf_q2_l1$acf))
+acf_q2_l2 <- acf(q2_lambda2$N_X, plot = FALSE)
+ESS_q2_l2 <- N/(1+sum(acf_q2_l2$acf))
+
+```
+
+Effective Sample Size(ESS) for the two parameters are given in the table below. ESS was computed as ,
+
+$\hat{ESS} = \frac{N}{1+\sum_t\rho_t}$ where $\rho_t$ is the autocorrelation at lag $t$ for a given parameter.
+
+* - ESS for $Q_1$ was 'ESS_q1_l1' and 'ESS_q1_l2' for $\lambda$ 0.5 and 1 respectively
+* - ESS for $Q_2$ was 'ESS_q2_l1' and 'ESS_q2_l2' for $\lambda$ 0.5 and 1 respectively
+
+### (3) 
+
+```{r}
+par(mfrow = c(2,2))
+plot(1:N, q1_lambda1$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[1]))))
+plot(1:N, q1_lambda2$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[2]))))
+plot(1:N, q2_lambda1$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[1]))))
+plot(1:N, q2_lambda2$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[2]))))
+
+par(mfrow = c(2,2))
+plot(1:N, q1_lambda1$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[1]))))
+plot(1:N, q1_lambda2$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[2]))))
+plot(1:N, q2_lambda1$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[1]))))
+plot(1:N, q2_lambda2$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[2]))))
+
+par(mfrow = c(2,4))
+acf(q1_lambda1$N_X, main = bquote(paste("N(X) : Q1 and ",lambda == .(lambda[1]))))
+acf(q1_lambda2$N_X, main = bquote(paste("N(X) : Q1 and ",lambda == .(lambda[2]))))
+acf(q2_lambda1$N_X, main = bquote(paste("N(X) : Q2 and ",lambda == .(lambda[1]))))
+acf(q2_lambda2$N_X, main = bquote(paste("N(X) : Q2 and ",lambda == .(lambda[2]))))
+acf(q1_lambda1$D_X, main = bquote(paste("D(X) : Q1 and ",lambda == .(lambda[1]))))
+acf(q1_lambda2$D_X, main = bquote(paste("D(X) : Q1 and ",lambda == .(lambda[2]))))
+acf(q2_lambda1$D_X, main = bquote(paste("D(X) : Q2 and ",lambda == .(lambda[1]))))
+acf(q2_lambda2$D_X, main = bquote(paste("D(X) : Q2 and ",lambda == .(lambda[2]))))
+
+```
+
+### (4) Estimate and Standard Errors
+```{r}
+batchmeans::bm(q1_lambda1$N_X)
+batchmeans::bm(q1_lambda2$N_X)
+batchmeans::bm(q2_lambda1$N_X)
+batchmeans::bm(q2_lambda2$N_X)
+```
+
 
 # Problem 4
 
