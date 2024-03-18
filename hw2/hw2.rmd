@@ -92,7 +92,7 @@ When called with `si.quad` with the same parameters, we observer that the runnin
 
 ## Integrate in C++
 
-Similar as `si.quad`, `gsl_integration_qagp` allows specifying the high density region through `pts` parameters. Unlike python, `pts` includes the integral bound. We specify `pts` to be an array of length 4, and set `pts[0]` and `pts[3]` as two lower bounds. We then set `pts[1]` and `pts[2]` to lies in the intersection between `(-10, 100)` and `(pts[0], pts[3])`.
+Similar as `si.quad`, `gsl_integration_qagp` allows specifying the high density region through `pts` parameters. Unlike python, `pts` includes the integral bounds. We specify `pts` to be an array of length 4, and set `pts[0]` and `pts[3]` to two bounds. We then set `pts[1]` and `pts[2]` to lies in the intersection between `(-10, 100)` and `(pts[0], pts[3])`.
 ```{Rcpp eval=FALSE}
 extern "C" {
 
