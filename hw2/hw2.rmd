@@ -266,6 +266,7 @@ $$
 $$
 
 We implement the density function of this matrix as,
+
 ```{r message=FALSE, warning=FALSE}
 true_dens <- function(V, lambda) {
   N_X <- sum(V)
@@ -275,6 +276,7 @@ true_dens <- function(V, lambda) {
 ```
 
 and the corresponding neighborhood matrix M is implemented below.
+
 ```{r message=FALSE, warning=FALSE}
 M1_base <- cbind(diag(3), rep(0, 3)) + cbind(rep(0, 3), -diag(3))
 M1 <- rbind(
@@ -293,6 +295,7 @@ M <- rbind(M1, M2)
 ## (1) Algorithm Description
 
 The initial values of $X$ are obtained by randomly drawing from 16 independent Bernoulli variables. We update the values $X^*$ using two symmetric proposal distributions, $Q_1$ and $Q_2$, as detailed below. Given the symmetry of these proposals, we use the Metropolis algorithm to generate posterior samples. The implementation of the Metropolis algorithm is provided below.
+
 ```{r message=FALSE, warning=FALSE}
 metropolis <- function(true_dens, prop_func,
                        X_init, sample_size, lambda) {
@@ -316,6 +319,7 @@ metropolis <- function(true_dens, prop_func,
 ```
 
 The first proposal $Q_1$ used 16 i.i.d Bernoulli random variables with 0.5 probability to generate $X$.
+
 ```{r message=FALSE, warning=FALSE}
 prop_func1 <- function(X) {
   rbinom(16, 1, 0.5)
@@ -323,6 +327,7 @@ prop_func1 <- function(X) {
 ```
 
 In the second proposal $Q_2$, we first selected an entry of the matrix with equal probability and set this entry to 0 or 1 with 0.5 probability.
+
 ```{r message=FALSE, warning=FALSE}
 prop_func2 <- function(X) {
   idx <- sample(16, 1, prob = rep(1 / 16, 16))
@@ -334,6 +339,7 @@ prop_func2 <- function(X) {
 ## (2) Algorithm Comparison
 
 To monitor the behavior of our MCMC algorithm, we check the trace plots for $D(X)$. From the following figure, we observe that Q1 clearly has bad mixing in both $\lambda = 0.5$ and $\lambda = 1$.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(10)
 D <- function(X) {sum(abs(M %*% X))}
@@ -394,6 +400,7 @@ We also check the effective sample size (ESS) for each case. The result further 
 
 ## (3)
 We run the MCMC for 100,000 iterations. As shown in the trace plot, our algorithm is mixing well.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 plot(1:sample_size, apply(sample3, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
@@ -401,16 +408,21 @@ plot(1:sample_size, apply(sample3, 1, D),
 ```
 
 Unfortunately, autocorrelation is both large at short lags and long lags, which indicates our chain has slow mixing.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 acf(apply(sample3, 1, D), plot = TRUE)
 ```
 
 ## (4) Estimate and Standard Errors
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-rbind(data.frame(batchmeans::bm(apply(sample1, 1, diag_all_one))),
+q3_mcmc <- rbind(data.frame(batchmeans::bm(apply(sample1, 1, diag_all_one))),
   data.frame(batchmeans::bm(apply(sample2, 1, diag_all_one))),
   data.frame(batchmeans::bm(apply(sample3, 1, diag_all_one))),
   data.frame(batchmeans::bm(apply(sample4, 1, diag_all_one))))
+rownames(q3_mcmc) <- c(
+  "Q1, lambda = 0.5", "Q1, lambda = 1",
+  "Q2, lambda = 0.5", "Q2, lambda = 1")
+knitr::kable(q3_mcmc, "simple")
 ```
 
 ## (5)
@@ -449,6 +461,7 @@ for (i in 1:sample_size) {
 ```
 
 The trace plot indicates a good mixing.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 plot(1:sample_size, apply(samples, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
