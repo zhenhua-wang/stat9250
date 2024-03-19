@@ -667,10 +667,11 @@ Y_grid <- (1 + beta1.posmean * X_grid) /
 ```{r echo=FALSE}
 # plot four plots together
 par(mfrow = c(2, 2))
-plot(result$Beta_1.chain[1,], type = 'l')
-plot(result$Beta_2.chain[1,], type = 'l')
-plot(result$Beta_3.chain[1,], type = 'l')
-plot(result$sigma2.chain, type = 'l')
+plot(result$Beta_1.chain[1,], type = 'l', ylab = "beta1")
+plot(result$Beta_2.chain[1,], type = 'l', ylab = "beta2")
+plot(result$Beta_3.chain[1,], type = 'l', ylab = "beta3")
+plot(result$sigma2.chain, type = 'l', ylab = "sigma2")
+par(mfrow = c(2, 2))
 acf(result$Beta_1.chain[1,])
 acf(result$Beta_2.chain[1,])
 acf(result$Beta_3.chain[1,])
@@ -701,17 +702,25 @@ points(X, Y)
 
 ### (3) Summarize approximations of the posterior expectations
 
-- posterior mean for $\beta_1$ is `r beta1.posmean`; $\beta_2$ is `r beta2.posmean`; $\beta_2$ is `r beta1.posmean`; $\sigma^2$ is `r beta4.posmean`
-- posterior standard deviation for $\beta_1$ is `r beta1.se`;  $\beta_2$ is `r beta2.se`;  $\beta_3$ is `r beta3.se`;  $\sigma^2$ is `r beta4.se`
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+q4_mcmc <- rbind(data.frame(batchmeans::bm(result$Beta_1.chain[1,])),
+  data.frame(batchmeans::bm(result$Beta_2.chain[1,])),
+  data.frame(batchmeans::bm(result$Beta_3.chain[1,])),
+  data.frame(batchmeans::bm(result$sigma2.chain)))
+rownames(q4_mcmc) <- c(
+  "beta 1", "beta 2",
+  "beta 3", "sigma^2")
+knitr::kable(q4_mcmc, "simple")
+```
 
 ### (4) Plot posterior PDFs
 
 ```{r echo=FALSE}
 par(mfrow = c(2, 2))
-plot(density(result$Beta_1.chain[1,]), main = "Beta 1")
-plot(density(result$Beta_2.chain[1,]), main = "Beta 2")
-plot(density(result$Beta_3.chain[1,]), main = "Beta 3")
-plot(density(result$sigma2.chain), main = "Sigma 2")
+hist(result$Beta_1.chain[1,], main = "", xlab = "beta1")
+hist(result$Beta_2.chain[1,], main = "", xlab = "beta2")
+hist(result$Beta_3.chain[1,], main = "", xlab = "beta3")
+hist(result$sigma2.chain, main = "", xlab = "sigma2")
 ```
 
 ### (5) Check correlation
