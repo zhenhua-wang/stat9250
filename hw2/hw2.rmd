@@ -4,6 +4,11 @@ author: Zhenhua Wang, Shalini Mahanthege, Zewei Kong
 output: pdf_document
 ---
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(batchmeans)
+library(PerformanceAnalytics)
+```
+
 # Problem 1
 The objective of this problem is to approximate the CDF of $X$ based on the survival function below.First we solve for $F(x)$ as below,
 
@@ -96,7 +101,6 @@ When called with `si.quad` with the same parameters, we observer that the runnin
 Similar as `si.quad`, `gsl_integration_qagp` allows specifying the high density region through `pts` parameters. Unlike python, `pts` includes the integral bounds. We specify `pts` to be an array of length 4, and set `pts[0]` and `pts[3]` to two bounds. We then set `pts[1]` and `pts[2]` to lies in the intersection between `(-10, 100)` and `(pts[0], pts[3])`.
 ```{Rcpp eval=FALSE}
 extern "C" {
-
   struct my_f_params {
     double x;
     double delta;
@@ -244,7 +248,7 @@ curve(true_density, from = 1e-5, to = 60,
 ```
 
 # Problem 3
-The objective of this problem is to estimate the probability the diagonal of a matrix $X$ is all 1’s. The probability distribution of the matrix is as follows,
+The objective of this problem is to estimate the probability the diagonal of a 4x4 binary matrix $X$ is all 1’s. The probability distribution of this matrix is as follows,
 
 $$\pi(X) \propto  p^{N(X)}(1 - p)^{16 - N(X)} \text{exp}\{-\lambda D(X)\}.$$
 
@@ -261,29 +265,17 @@ $$
 \end{array} \right)
 $$
 
-### (1) Algorithm Description
-
-We built our MCMC with Metropolis updates since both $Q_1$ and $Q_2$ proposal algorithms are symmetric.
-* - initial values - We generated a random $X$ matrix using independent Bernoulli random variables. 
-* - $Q_1$ proposal algorithm - Used 16 iid Bernoulli random variables with 0.5 probability of success i.e.rbinom(16,1,0.5) to create $X$.
-* - $Q_2$ proposal algorithm - First a location index of the matrix was selected by using sample(16, 1, replace = TRUE, prob = rep(0.0625, 16)). Then rbinom(1,1,0.5) was used to set the entry of the selected location to 1 or 0.
-* - acceptance probability - $\alpha = min\{1,\pi(X^*)/\pi(X)\}$
-* - Parameters - $N(X)$ and $D(X)$ parameters behavior was observed to understand model performance. 
-* - Number of iterations - 200,000 iterations gave required results.
-
-### (2) Algorithm Comparison 
-
-The figure shows the acceptance rate over time. From the top row of the figure we can see that the acceptance rate is very low for the proposal algorithm $Q_1$ whereas $Q_2$ has a good acceptance rate over time. Hence we believe that $Q_2$ results in a faster mixing MCMC.
-
+We implement the density function of this matrix as,
 ```{r message=FALSE, warning=FALSE}
-library(batchmeans)
+true_dens <- function(V, lambda) {
+  N_X <- sum(V)
+  D_X <- sum(abs(M %*% V))
+  0.8^N_X * 0.2^(16 - N_X) * exp(-lambda * D_X)
+}
+```
 
-X <- matrix(c(1,0,0,0,
-              1,1,0,0,
-              0,0,0,0,
-              0,0,0,0), ncol = 4, nrow = 4)
-
-
+and the corresponding neighborhood matrix M is implemented below.
+```{r message=FALSE, warning=FALSE}
 M1_base <- cbind(diag(3), rep(0, 3)) + cbind(rep(0, 3), -diag(3))
 M1 <- rbind(
   cbind(M1_base, matrix(0, 3, 12)),
@@ -296,161 +288,174 @@ M2 <- rbind(
   cbind(matrix(0, 4, 4), M2_base, matrix(0, 4, 4)),
   cbind(matrix(0, 4, 8), M2_base))
 M <- rbind(M1, M2)
+```
 
+## (1) Algorithm Description
 
-#test D
-X <- matrix(c(1,0,0,0,
-              0,0,0,0,
-              0,0,0,0,
-              0,0,0,0), ncol = 4, nrow = 4)
-sum(abs(M%*%as.vector(X)))
-X <- matrix(c(1,0,0,0,
-              1,1,0,0,
-              0,0,0,0,
-              0,0,0,0), ncol = 4, nrow = 4)
-sum(abs(M%*%as.vector(X)))
-
-#density of X
-prob_dist <- function(lambda, X){
-  N_X <- sum(X)
-  D_X <- sum(abs(M%*%as.vector(X)))
-  prob <- 0.8^N_X * 0.2^(16-N_X) * exp(-lambda*D_X)
-  return(prob)
+The initial values of $X$ are obtained by randomly drawing from 16 independent Bernoulli variables. We update the values $X^*$ using two symmetric proposal distributions, $Q_1$ and $Q_2$, as detailed below. Given the symmetry of these proposals, we use the Metropolis algorithm to generate posterior samples. The implementation of the Metropolis algorithm is provided below.
+```{r message=FALSE, warning=FALSE}
+metropolis <- function(true_dens, prop_func,
+                       X_init, sample_size, lambda) {
+  X <- X_init
+  samples <- matrix(NA, sample_size, length(X_init))
+  accept_rate <- rep(0, sample_size)
+  for (i in 1:sample_size) {
+    X_new <- prop_func(X)
+    alpha <- min(1, true_dens(X_new, lambda) / true_dens(X, lambda))
+    U <- runif(1)
+    if (U < alpha) {
+      samples[i, ] <- X_new
+      X <- X_new
+      accept_rate[i] <- 1
+    } else {
+      samples[i, ] <- X
+    }
+  }
+  return(list(samples = samples, accept_rate = accept_rate))
 }
+```
 
-log_prob_dist <- function(lambda, X){
-  N_X <- sum(X)
-  D_X <- sum(abs(M%*%as.vector(X)))
-  prob <- N_X * log(0.8)  + (16-N_X)*log(0.2) - lambda*D_X
-  return(prob)
+The first proposal $Q_1$ used 16 i.i.d Bernoulli random variables with 0.5 probability to generate $X$.
+```{r message=FALSE, warning=FALSE}
+prop_func1 <- function(X) {
+  rbinom(16, 1, 0.5)
 }
+```
 
-
-Q1 <- function(X){
-  X_star <- matrix(rbinom(16,1,0.5), nrow = 4, ncol = 4)
-  return(X_star)
-}
-
-Q2 <- function(X){
-  loc <- sample(16, 1, replace = TRUE, prob = rep(0.0625, 16))
-  X[loc] <- rbinom(1,1,0.5)
+In the second proposal $Q_2$, we first selected an entry of the matrix with equal probability and set this entry to 0 or 1 with 0.5 probability.
+```{r message=FALSE, warning=FALSE}
+prop_func2 <- function(X) {
+  idx <- sample(16, 1, prob = rep(1 / 16, 16))
+  X[idx] <- rbinom(1, 1, 0.5)
   return(X)
 }
+```
 
-#MCMC
-MCMC <- function(X, N, Q, lambda){
-  jump_trace <- array(0,N)
-  N_X <- array(NA,N)
-  D_X <- array(NA,N)
-  #X_mat_array <- array(NA, dim = c(N,4,4))
-  for (i in 1:N) {
-    X_new <- Q(X)
-    ratio <- prob_dist(lambda, X_new)/prob_dist(lambda, X)
-    alpha <- min(1,ratio)
-    if(runif(1) < alpha){
-      X <- X_new
-      jump_trace[i] <- 1
-    }
-    #if((i%%10000) == 0)
-    #  print(paste0("Done with ",i))
-    #X_mat_array[i,,] <- X 
-    N_X[i] <- sum(X)
-    D_X[i] <- sum(abs(M%*%as.vector(X)))
-  }
-  return(list(N_X = N_X, D_X = D_X, jump_trace = jump_trace))
+## (2) Algorithm Comparison
+
+To monitor the behavior of our MCMC algorithm, we check the trace plots for $D(X)$. From the following figure, we observe that Q1 clearly has bad mixing in both $\lambda = 0.5$ and $\lambda = 1$.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+set.seed(10)
+D <- function(X) {sum(abs(M %*% X))}
+diag_all_one <- function(V) {
+  X <- matrix(V, 4, 4)
+  all(diag(X) == 1)
 }
-
-X_init <- matrix(rbinom(16,1,0.5), nrow = 4, ncol = 4)
-lambda <- c(0.5,1)
-N <- 200000
-q1_lambda1 <- MCMC(X_init, N, Q1, lambda[1])
-q1_lambda2 <- MCMC(X_init, N, Q1, lambda[2])
-q2_lambda1 <- MCMC(X_init, N, Q2, lambda[1])
-q2_lambda2 <- MCMC(X_init, N, Q2, lambda[2])
-
-
-par(mfrow = c(2,2))
-cumulative_sums <- cumsum(q1_lambda1$jump_trace)
-acc_prob <- cumulative_sums/1:N
-plot(10000:N, acc_prob[10000:N], type = "l", 
-     main = bquote(paste("Q1 and ",lambda == .(lambda[1]))), 
-     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
-
-cumulative_sums <- cumsum(q1_lambda2$jump_trace)
-acc_prob <- cumulative_sums/1:N
-plot(10000:N, acc_prob[10000:N], type = "l", 
-     main = bquote(paste("Q1 and ",lambda == .(lambda[2]))), 
-     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
-
-cumulative_sums <- cumsum(q2_lambda1$jump_trace)
-acc_prob <- cumulative_sums/1:N
-plot(10000:N, acc_prob[10000:N], type = "l", 
-     main = bquote(paste("Q2 and ",lambda == .(lambda[1]))), 
-     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
-
-cumulative_sums <- cumsum(q2_lambda2$jump_trace)
-acc_prob <- cumulative_sums/1:N
-plot(10000:N, acc_prob[10000:N], type = "l", 
-     main = bquote(paste("Q2 and ",lambda == .(lambda[1]))), 
-     ylab = "Acceptance Rate", xlab = "Iterations after 10000 burn-in")
-
-mean(q2_lambda1$jump_trace)
-
-## ESS
-acf_q1_l1 <- acf(q1_lambda1$N_X, plot = FALSE)
-ESS_q1_l1 <- N/(1+sum(acf_q1_l1$acf))
-acf_q1_l2 <- acf(q1_lambda2$N_X, plot = FALSE)
-ESS_q1_l2 <- N/(1+sum(acf_q1_l2$acf))
-
-acf_q2_l1 <- acf(q2_lambda1$N_X, plot = FALSE)
-ESS_q2_l1<- N/(1+sum(acf_q2_l1$acf))
-acf_q2_l2 <- acf(q2_lambda2$N_X, plot = FALSE)
-ESS_q2_l2 <- N/(1+sum(acf_q2_l2$acf))
-
+V <- rbinom(16, 1, 0.5)
+sample_size <- 100000
+par(mfrow = c(2, 2))
+## Q1 0.5
+result1 <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
+sample1 <- result1$samples
+plot(1:sample_size, apply(sample1, 1, D),
+  type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
+  main = "Trace plot for Q1 lambda = 0.5")
+## Q1 1
+result2 <- metropolis(true_dens, prop_func1, V, sample_size, 1)
+sample2 <- result2$samples
+plot(1:sample_size, apply(sample2, 1, D),
+  type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
+  main = "Trace plot for Q1 lambda = 1")
+## Q2 0.5
+result3 <- metropolis(true_dens, prop_func2, V, sample_size, 0.5)
+sample3 <- result3$samples
+plot(1:sample_size, apply(sample3, 1, D),
+  type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
+  main = "Trace plot for Q2 lambda = 0.5")
+## Q2 1
+result4 <- metropolis(true_dens, prop_func2, V, sample_size, 1)
+sample4 <- result4$samples
+plot(1:sample_size, apply(sample4, 1, D),
+  type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
+  main = "Trace plot for Q2 lambda = 1")
 ```
 
-Effective Sample Size(ESS) for the two parameters are given in the table below. ESS was computed as ,
+Looking at the acceptance rates, we observe that $Q_2$ constantly has a higher acceptance rate.
 
-$\hat{ESS} = \frac{N}{1+\sum_t\rho_t}$ where $\rho_t$ is the autocorrelation at lag $t$ for a given parameter.
+- Q1 with $\lambda = 0.5$: `r round(mean(result1$accept_rate), 4)`
+- Q1 with $\lambda = 1$: `r round(mean(result2$accept_rate), 4)`
+- Q2 with $\lambda = 0.5$: `r round(mean(result3$accept_rate), 3)`
+- Q2 with $\lambda = 1$: `r round(mean(result4$accept_rate), 3)`
 
-* - ESS for $Q_1$ was 'ESS_q1_l1' and 'ESS_q1_l2' for $\lambda$ 0.5 and 1 respectively
-* - ESS for $Q_2$ was 'ESS_q2_l1' and 'ESS_q2_l2' for $\lambda$ 0.5 and 1 respectively
-
-### (3) 
-
-```{r}
-par(mfrow = c(2,2))
-plot(1:N, q1_lambda1$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[1]))))
-plot(1:N, q1_lambda2$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[2]))))
-plot(1:N, q2_lambda1$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[1]))))
-plot(1:N, q2_lambda2$N_X, type = "l", xlab = "iteration", ylab = "N(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[2]))))
-
-par(mfrow = c(2,2))
-plot(1:N, q1_lambda1$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[1]))))
-plot(1:N, q1_lambda2$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q1 and ",lambda == .(lambda[2]))))
-plot(1:N, q2_lambda1$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[1]))))
-plot(1:N, q2_lambda2$D_X, type = "l", xlab = "iteration", ylab = "D(X)", main = bquote(paste("Q2 and ",lambda == .(lambda[2]))))
-
-par(mfrow = c(2,4))
-acf(q1_lambda1$N_X, main = bquote(paste("N(X) : Q1 and ",lambda == .(lambda[1]))))
-acf(q1_lambda2$N_X, main = bquote(paste("N(X) : Q1 and ",lambda == .(lambda[2]))))
-acf(q2_lambda1$N_X, main = bquote(paste("N(X) : Q2 and ",lambda == .(lambda[1]))))
-acf(q2_lambda2$N_X, main = bquote(paste("N(X) : Q2 and ",lambda == .(lambda[2]))))
-acf(q1_lambda1$D_X, main = bquote(paste("D(X) : Q1 and ",lambda == .(lambda[1]))))
-acf(q1_lambda2$D_X, main = bquote(paste("D(X) : Q1 and ",lambda == .(lambda[2]))))
-acf(q2_lambda1$D_X, main = bquote(paste("D(X) : Q2 and ",lambda == .(lambda[1]))))
-acf(q2_lambda2$D_X, main = bquote(paste("D(X) : Q2 and ",lambda == .(lambda[2]))))
-
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+effective_size <- function(samples) {
+  n <- length(samples)
+  rho <- acf(samples, plot = FALSE)$acf
+  return(n / (1 + sum(rho)))
+}
 ```
 
-### (4) Estimate and Standard Errors
-```{r}
-batchmeans::bm(q1_lambda1$N_X)
-batchmeans::bm(q1_lambda2$N_X)
-batchmeans::bm(q2_lambda1$N_X)
-batchmeans::bm(q2_lambda2$N_X)
+We also check the effective sample size (ESS) for each case. The result further confirms that Q2 has a better mixing.
+
+- Q1 with $\lambda = 0.5$: `r effective_size(apply(sample1, 1, D))`
+- Q1 with $\lambda = 1$: `r effective_size(apply(sample2, 1, D))`
+- Q2 with $\lambda = 0.5$: `r effective_size(apply(sample3, 1, D))`
+- Q2 with $\lambda = 1$: `r effective_size(apply(sample4, 1, D))`
+
+## (3)
+We run the MCMC for 100,000 iterations. As shown in the trace plot, our algorithm is mixing well.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(1:sample_size, apply(sample3, 1, D),
+  type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
+  main = "Trace plot for Q2 lambda = 1")
 ```
 
+Unfortunately, autocorrelation is both large at short lags and long lags, which indicates our chain has slow mixing.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+acf(apply(sample3, 1, D), plot = TRUE)
+```
+
+## (4) Estimate and Standard Errors
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+rbind(data.frame(batchmeans::bm(apply(sample1, 1, diag_all_one))),
+  data.frame(batchmeans::bm(apply(sample2, 1, diag_all_one))),
+  data.frame(batchmeans::bm(apply(sample3, 1, diag_all_one))),
+  data.frame(batchmeans::bm(apply(sample4, 1, diag_all_one))))
+```
+
+## (5)
+As discussed in section (2) and (3). Q2 clearly has better performance compared to Q1. It's trace plot shows better mixing and has more effective sample size in both $\lambda = 0.5$ and $\lambda = 1$. Furthermore, Q2 also has lower MCMC standard error in both cases. Therefore, the Metropolis algorithm with proposal Q2 proposes a better result.
+
+## (6)
+We propose to block Metropolis algorithm to update $X$. Specifically, within each iteration, we update the diagonal entries of $X$ together, and then update the off-diagonal entries. All entries are drawn from Bernoulli distributions with 0.8 probability of success.
+
+```{r message=FALSE, warning=FALSE}
+X <- matrix(rbinom(16, 1, 0.5), 4, 4)
+samples <- matrix(NA, sample_size, length(V))
+for (i in 1:sample_size) {
+  ## diagonal
+  X.star <- X
+  diag(X.star) <- rbinom(4, 1, 0.8)
+  alpha <- min(1, true_dens(c(X.star), 1) / true_dens(c(X), 1))
+  U <- runif(1)
+  if (U < alpha) {
+    samples[i, ] <- c(X.star)
+    X <- X.star
+  } else {
+    samples[i, ] <- c(X)
+  }
+  ## off-diagonal
+  X.star <- X
+  X.star[col(X.star) != row(X.star)] <- rbinom(12, 1, 0.8)
+  alpha <- min(1, true_dens(c(X.star), 1) / true_dens(c(X), 1))
+  U <- runif(1)
+  if (U < alpha) {
+    samples[i, ] <- c(X.star)
+    X <- X.star
+  } else {
+    samples[i, ] <- c(X)
+  }
+}
+```
+
+The trace plot indicates a good mixing.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(1:sample_size, apply(samples, 1, D),
+  type = "l", col = "blue", xlab = "iteration", ylab = "D(X)",
+  main = "Trace plot for block Metropolis")
+```
+
+The effective sample size of this algorithm is `r effective_size(apply(samples, 1, D))`, which confirms that this algorithm is much efficient than $Q_1$ and $Q_2$
 
 # Problem 4
 
@@ -687,10 +692,6 @@ plot(density(result$sigma2.chain), main = "Sigma 2")
 df <- cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain)
 cor_matrix <- cor(cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain))
 cov_beta <- c(cov(df)[1,2], cov(df)[1,3], cov(df)[2,3])
-library(PerformanceAnalytics)
-```
-
-```{r echo=FALSE, warning=FALSE}
 chart.Correlation(df, histogram=TRUE, pch=19)
 ```
 

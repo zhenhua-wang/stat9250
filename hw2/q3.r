@@ -60,8 +60,8 @@ prop_func1 <- function(X) {
   rbinom(16, 1, 0.5)
 }
 
-V <- matrix(rbinom(16, 1, 0.5), 4, 4)
-sample_size <- 10000
+V <- rbinom(16, 1, 0.5)
+sample_size <- 200000
 result <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
 samples <- result$samples
 plot(1:sample_size, apply(samples, 1, D),
@@ -69,7 +69,7 @@ plot(1:sample_size, apply(samples, 1, D),
   main = sprintf("Probability for algo 1, lambda = 0.5: %.3f",
     mean(apply(samples, 1, diag_all_one))))
 
-result <- metropolis(true_dens, prop_func1, V, sample_size, 0.5)
+result <- metropolis(true_dens, prop_func1, V, sample_size, 1)
 samples <- result$samples
 plot(1:sample_size, apply(samples, 1, D),
   type = "l", col = "blue", xlab = "iteration", ylab = "N(X)",
@@ -98,7 +98,7 @@ plot(1:sample_size, apply(samples, 1, D),
     mean(apply(samples, 1, diag_all_one))))
 
 ## * MH3
-sample_size <- 100000
+## sample_size <- 100000
 lambda <- 1
 V <- V2
 X <- matrix(V, 4, 4)
@@ -106,7 +106,7 @@ samples <- matrix(NA, sample_size, length(V))
 for (i in 1:sample_size) {
   ## diagonal
   X.star <- X
-  diag(X.star) <- rbinom(4, 1, 0.5)
+  diag(X.star) <- rbinom(4, 1, 0.8)
   alpha <- min(1, true_dens(c(X.star), lambda) / true_dens(c(X), lambda))
   U <- runif(1)
   if (U < alpha) {
@@ -117,7 +117,7 @@ for (i in 1:sample_size) {
   }
   ## off-diagonal
   X.star <- X
-  X.star[col(X.star) != row(X.star)] <- rbinom(12, 1, 0.5)
+  X.star[col(X.star) != row(X.star)] <- rbinom(12, 1, 0.8)
   alpha <- min(1, true_dens(c(X.star), lambda) / true_dens(c(X), lambda))
   U <- runif(1)
   if (U < alpha) {
