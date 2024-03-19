@@ -665,6 +665,7 @@ acf(result$Beta_2.chain[1,])
 acf(result$Beta_3.chain[1,])
 acf(result$sigma2.chain)
 ```
+
 ```{r echo=FALSE}
 ## check normal assumption
 residual.posmean <- Y - (1 + beta1.posmean * X) /
