@@ -640,18 +640,27 @@ Y_grid <- (1 + beta1.posmean * X_grid) /
   (1 + beta2.posmean * exp(beta3.posmean * X_grid))
 ```
 
-```{r}
+```{r echo=FALSE}
 # plot four plots together
 par(mfrow = c(2, 2))
 plot(result$Beta_1.chain[1,], type = 'l')
 plot(result$Beta_2.chain[1,], type = 'l')
 plot(result$Beta_3.chain[1,], type = 'l')
 plot(result$sigma2.chain, type = 'l')
+acf(result$Beta_1.chain[1,])
+acf(result$Beta_2.chain[1,])
+acf(result$Beta_3.chain[1,])
+acf(result$sigma2.chain)
+```
+
+```{r echo=FALSE}
 par(mfrow = c(1, 1))
 plot(X_grid, Y_grid, type = "l")
 points(X, Y)
 ```
+
 - From the trace plots, we can see that the chains have mixed well and show no signs of non-convergence. The chains are stationary and show no trends or patterns.
+- The autocorrelation plots show that the chains for $\beta$ have high autocorrelation, which indicating some mixing problem. But for $\sigma^2$ has low autocorrelation, indicating good mixing and convergence.
 - The acceptance rate for $\beta$ is `r mean(result$acceptance_beta)`
 - The acceptance rate for $\sigma^2$ is `r mean(result$acceptance_sigma)`
 - By comparing the true value with estimated model. We can the true values is located around the model, which implies that the model could predict expectation well.
@@ -664,7 +673,7 @@ points(X, Y)
 
 ### (4) Plot posterior PDFs
 
-```{r}
+```{r echo=FALSE}
 par(mfrow = c(2, 2))
 plot(density(result$Beta_1.chain[1,]), main = "Beta 1")
 plot(density(result$Beta_2.chain[1,]), main = "Beta 2")
@@ -679,6 +688,9 @@ df <- cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chai
 cor_matrix <- cor(cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain))
 cov_beta <- c(cov(df)[1,2], cov(df)[1,3], cov(df)[2,3])
 library(PerformanceAnalytics)
+```
+
+```{r echo=FALSE, warning=FALSE}
 chart.Correlation(df, histogram=TRUE, pch=19)
 ```
 
@@ -712,7 +724,7 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 
 
 ### (6) Sensitivity analysis
-```{r include=FALSE}
+```{r echo=FALSE}
 # Function to calculate the weights for importance sampling based on new variances
 calculate_weights <- function(beta_samples, old_var, new_var) {
   # Calculate the density under the old priors
@@ -738,7 +750,7 @@ weighted_mean_beta2 <- sum(weights_beta2 * result$Beta_2.chain) / sum(weights_be
 weighted_mean_beta3 <- sum(weights_beta3 * result$Beta_3.chain) / sum(weights_beta3)
 ```
 
-```{r include=FALSE}
+```{r echo=FALSE}
 # Function to calculate weights for importance sampling, for the sigma^2 parameter
 calculate_weights_sigma2 <- function(sigma2_samples, old_shape, old_scale, new_shape, new_scale) {
   # Calculate the density under the old prior
@@ -761,21 +773,21 @@ weighted_mean_sigma2 <- sum(weights_sigma2 * result$sigma2.chain) / sum(weights_
 - Compute the weight
 
 \[ 
-w_{\beta_i} = \frac{\text{NewPrior}(\beta_i)}{\text{OriginalPrior}(\beta_i)} \\
+w_{\beta_i} = \frac{\text{NewPrior}(\beta_i)}{\text{OriginalPrior}(\beta_i)}; \\
 w_{\sigma^2} = \frac{\text{NewPrior}(\sigma^2)}{\text{OriginalPrior}(\sigma^2)}
 \]
  
 - Normalize the weight
 
 \[
-\hat{w}_{\beta_i} = \frac{w_{\beta_i}}{\sum_{j=1}^{N} w_{\beta_i,j}} \\
+\hat{w}_{\beta_i} = \frac{w_{\beta_i}}{\sum_{j=1}^{N} w_{\beta_i,j}}; \\
 \hat{w}_{\sigma^2} = \frac{w_{\sigma^2}}{\sum_{j=1}^{N} w_{\sigma^2,j}}
 \]
 
 - Estimate the expectation
 
 \[
-E[\beta_i] \approx \sum_{j=1}^{N} \hat{w}_{\beta_i,j} \cdot \beta_{i,j} \\
+E[\beta_i] \approx \sum_{j=1}^{N} \hat{w}_{\beta_i,j} \cdot \beta_{i,j}; \\
 E[\sigma^2] \approx \sum_{j=1}^{N} \hat{w}_{\sigma^2,j} \cdot (\sigma^2)_j
 \]
 
@@ -787,7 +799,7 @@ E[\sigma^2] \approx \sum_{j=1}^{N} \hat{w}_{\sigma^2,j} \cdot (\sigma^2)_j
 
 
 ### (7) Repeat Importance Sampling
-```{r include=FALSE}
+```{r echo=FALSE}
 # Calculate weights for each beta based on the new variance
 weights_beta1_lv <- calculate_weights(result$Beta_1.chain, old_var = 10, new_var = 50)
 weights_beta2_lv <- calculate_weights(result$Beta_2.chain, old_var = 10, new_var = 50)
@@ -811,6 +823,5 @@ weighted_mean_sigma2_lv <- sum(weights_sigma2_lv * result$sigma2.chain) / sum(we
 - Posterior expectation for $\sigma^2$ is `r weighted_mean_sigma2_lv`
 - Although our new prior is less informative, the results are still close to each other; this may imply that the results are data dominance.
 - The results are not sensitive to the choice of prior, which is a good sign for the robustness of the model.
-
 
 # Appendix
