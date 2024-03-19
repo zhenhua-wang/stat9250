@@ -712,7 +712,7 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 
 
 ### (6) Sensitivity analysis
-```{r include=FALSE}}
+```{r include=FALSE}
 # Function to calculate the weights for importance sampling based on new variances
 calculate_weights <- function(beta_samples, old_var, new_var) {
   # Calculate the density under the old priors
@@ -738,7 +738,7 @@ weighted_mean_beta2 <- sum(weights_beta2 * result$Beta_2.chain) / sum(weights_be
 weighted_mean_beta3 <- sum(weights_beta3 * result$Beta_3.chain) / sum(weights_beta3)
 ```
 
-```{r include=FALSE}}
+```{r include=FALSE}
 # Function to calculate weights for importance sampling, for the sigma^2 parameter
 calculate_weights_sigma2 <- function(sigma2_samples, old_shape, old_scale, new_shape, new_scale) {
   # Calculate the density under the old prior
