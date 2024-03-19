@@ -692,6 +692,9 @@ plot(density(result$sigma2.chain), main = "Sigma 2")
 df <- cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain)
 cor_matrix <- cor(cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain))
 cov_beta <- c(cov(df)[1,2], cov(df)[1,3], cov(df)[2,3])
+```
+
+```{r echo=FALSE, warning=FALSE}
 chart.Correlation(df, histogram=TRUE, pch=19)
 ```
 
