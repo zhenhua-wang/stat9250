@@ -21,7 +21,7 @@ Then we proceeded to use the three different ways to intergate this function in 
 
 ![](q1plot.png)
 
-## Define integrand in Python
+## (1) Define integrand in Python
 Based on the previous calculation, we define the following integrand in python.
 
 ```{python eval=FALSE, python.reticulate = FALSE}
@@ -34,7 +34,7 @@ def integrand(eps, x, delta, tau):
             normal_density(eps, tau)
 ```
 
-Solving this integration with default parameters in `si.quad` will results in numerical issues at the tails of distribution. To deal with this, we tuning the `points` parameter to include the high density region. We can roughly observe that this integrate has high density within `(-10, 100)`.
+Solving this integration with default parameters in `si.quad` will results in numerical issues at the tails of distribution. To deal with this, we tuning the `points` parameter to include the high density region. We can roughly observe that this integration has high density within the range of `(-10, 100)`.
 
 ```{python eval=FALSE, python.reticulate = FALSE}
 def F(x, delta, tau, epsabs=1.49e-7, epsrel=1.49e-8):
@@ -46,7 +46,7 @@ def F(x, delta, tau, epsabs=1.49e-7, epsrel=1.49e-8):
 F_vec = np.vectorize(F)
 ```
 
-The computation time is 0.66s.
+It takes 0.66 seconds to solve this integration in Python.
 
 ```{python eval=FALSE, python.reticulate = FALSE}
 start = time.time()
@@ -58,7 +58,7 @@ print('running time:', end - start)
 
 ## Define integrate in C++
 
-Below we define a similar integrand in C++
+Below we define a similar integrand in C++,
 
 ```{Rcpp eval=FALSE}
 extern "C"
@@ -78,7 +78,7 @@ extern "C"
 }
 ```
 
-After compiling this integrand as `q1_integrand_cpp.so`, we then using the following script to load it into Python.
+After compiling the integrand into `q1_integrand_cpp.so`, we proceed to solve the integration using the Python script below. By calling `si.quad` with the same parameters as before, we observe a substantial reduction in execution time to 0.04 seconds.
 
 ```{python eval=FALSE, python.reticulate = FALSE}
 # load c++ integrand without gsl
@@ -88,11 +88,10 @@ lib.integrand.argtypes = (ctypes.c_int, ctypes.POINTER(ctypes.c_double))
 integrand_cpp = LowLevelCallable(lib.integrand)
 ```
 
-When called with `si.quad` with the same parameters, we observer that the running time reduces significantly to 0.04.
-
 ## Integrate in C++ using GSL
 
-Similar as `si.quad`, `gsl_integration_qagp` allows specifying the high density region through `pts` parameters. Unlike python, `pts` includes the integral bounds. We specify `pts` to be an array of length 4, and set `pts[0]` and `pts[3]` to two bounds. We then set `pts[1]` and `pts[2]` to lies in the intersection between `(-10, 100)` and `(pts[0], pts[3])`.
+Similar to `si.quad`, `gsl_integration_qagp` in C++ allows specifying the high-density region through the `pts` parameter. However, unlike in Python, `pts` in GSL includes the bounds of the integral. To utilize this, we define `pts` as an array of length 4, and assign `pts[0]` and `pts[3]` as the lower and upper bounds, respectively. In addition, We let `pts[1]` and `pts[2]` to fall within the intersection between `(-10, 100)` and the range defined by `(pts[0], pts[3])`.
+
 ```{Rcpp eval=FALSE}
 extern "C" {
   struct my_f_params {
@@ -155,7 +154,7 @@ extern "C" {
 }
 ```
 
-We then use the following script to load the C++ methods into Python.
+Next, we use the script below to import the C++ functions into Python. With the updated `F_vec`, the running time is further reduced to 0.02 seconds.
 
 ```{python eval=FALSE, python.reticulate = FALSE}
 lib_1 = ctypes.CDLL(os.path.abspath('./hw2/q1_integrand_cpp_gsl.so'))
@@ -165,8 +164,6 @@ lib_1.f_gsl.restype = ctypes.c_double
 lib_1.f_gsl.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
 F_vec = np.vectorize(lib_1.f_gsl)
 ```
-
-The running time is further reduced to 0.02 with the new `F_vec`.
 
 # Problem 2
 
