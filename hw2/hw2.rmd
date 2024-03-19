@@ -640,11 +640,18 @@ Y_grid <- (1 + beta1.posmean * X_grid) /
   (1 + beta2.posmean * exp(beta3.posmean * X_grid))
 ```
 
-```{r include=FALSE}
+```{r}
+# plot four plots together
+par(mfrow = c(2, 2))
+plot(result$Beta_1.chain[1,], type = 'l')
+plot(result$Beta_2.chain[1,], type = 'l')
+plot(result$Beta_3.chain[1,], type = 'l')
+plot(result$sigma2.chain, type = 'l')
+par(mfrow = c(1, 1))
 plot(X_grid, Y_grid, type = "l")
 points(X, Y)
 ```
-
+- From the trace plots, we can see that the chains have mixed well and show no signs of non-convergence. The chains are stationary and show no trends or patterns.
 - The acceptance rate for $\beta$ is `r mean(result$acceptance_beta)`
 - The acceptance rate for $\sigma^2$ is `r mean(result$acceptance_sigma)`
 - By comparing the true value with estimated model. We can the true values is located around the model, which implies that the model could predict expectation well.
