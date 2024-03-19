@@ -406,7 +406,7 @@ We also check the effective sample size (ESS) for each case. The result further 
 - Q2 with $\lambda = 0.5$: `r effective_size(apply(sample3, 1, D))`
 - Q2 with $\lambda = 1$: `r effective_size(apply(sample4, 1, D))`
 
-## (3)
+## (3) MCMC Results
 We run the MCMC for 100,000 iterations. As shown in the trace plot, our algorithm is mixing well.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -418,10 +418,11 @@ plot(1:sample_size, apply(sample3, 1, D),
 Unfortunately, autocorrelation is both large at short lags and long lags, which indicates our chain has slow mixing.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-acf(apply(sample3, 1, D), plot = TRUE)
+acf(apply(sample3, 1, D), plot = TRUE, main = "")
 ```
 
 ## (4) Estimate and Standard Errors
+The estiamtes and associated MCMC standard errors computed using batchmeans library are listed below.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 q3_mcmc <- rbind(data.frame(batchmeans::bm(apply(sample1, 1, diag_all_one))),
   data.frame(batchmeans::bm(apply(sample2, 1, diag_all_one))),
@@ -433,10 +434,15 @@ rownames(q3_mcmc) <- c(
 knitr::kable(q3_mcmc, "simple")
 ```
 
-## (5)
+## (5) Theoretical aspect of MCMC
+
+Based on the strong law of large numbers for Markov Chains, If a Harris-ergodic Markov Chain $X_0, X_1, X_2,...$ has a stationary distribution $\pi$, and if $\mu = E_\pi\{g(X)\} < \infty$, then 
+$\hat{\mu}_n = \frac{\sum_{i=1}^ng(X_i)}{n} \rightarrow \mu$ almost surely. Then for each state $x \in \Omega$, the fraction of time spent in state $X$ satisfies, $\frac{\sum_{i=1}^n 1(X_i=x)}{n} \rightarrow \pi(x)$ almost surely. 
+So if the Markov Chain we construct is Harris Ergodic i.e it is positive Harris recurrent and aperiodic, then the MCMC holds for estimating expectations with respect to $\pi$.
+
 As discussed in section (2) and (3). Q2 clearly has better performance compared to Q1. It's trace plot shows better mixing and has more effective sample size in both $\lambda = 0.5$ and $\lambda = 1$. Furthermore, Q2 also has lower MCMC standard error in both cases. Therefore, the Metropolis algorithm with proposal Q2 proposes a better result.
 
-## (6)
+## (6) Proposed Algorithm
 We propose to block Metropolis algorithm to update $X$. Specifically, within each iteration, we update the diagonal entries of $X$ together, and then update the off-diagonal entries. All entries are drawn from Bernoulli distributions with 0.8 probability of success.
 
 ```{r message=FALSE, warning=FALSE}
