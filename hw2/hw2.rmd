@@ -34,7 +34,7 @@ def integrand(eps, x, delta, tau):
             normal_density(eps, tau)
 ```
 
-Solving this integration with default parameters in `si.quad` will results in numerical issues at the tails of distribution. To deal with this, we tuning the `points` parameter to include the high density region. We can roughly observe that this integration has high density within the range of `(-10, 100)`.
+Solving this integration with default parameters in `si.quad` will results in numerical issues at the tails of distribution. To deal with this, we tuning the `points` parameter to include the high density region. We can roughly observe that this integration has high density within the range of `(-10, 100)` (The exact range is often not available in practice; however, we can observe a rough range by first running `si.quad` without `points` parameter).
 
 ```{python eval=FALSE, python.reticulate = FALSE}
 def F(x, delta, tau, epsabs=1.49e-7, epsrel=1.49e-8):
@@ -58,7 +58,7 @@ print('running time:', end - start)
 
 ## Define integrate in C++
 
-Below we define a similar integrand in C++,
+Below we define the same integrand in C++,
 
 ```{Rcpp eval=FALSE}
 extern "C"
@@ -182,15 +182,13 @@ true_density <- function(x, theta = 0.1) {
 }
 ```
 
-To sample from this distribution we use an exponential distribution with rate 0.09 as our proposal distribution which has a heavier tail compared to the target $f(x)$. The proposal distribution $q(x)$ is specified as,
+To sample from this distribution, we propose from an exponential distribution $q(x)$ with rate 0.09 which has a heavier tail compared to the target $f(x)$. The proposal distribution $q(x)$ is specified as,
 
 $$
 q(x) = 0.09 e^{-0.09x}
 $$
 
-Then we use a rejection sampling technique to obtain the 100000 sample. The first step in the rejection sampling was to determine  $k$, the rejection factor. This was set by obtaining the maximum of the ratio of $f(x)/q(x)$ from a random sample. Based on our proposal distribution we set $k$ as 15.
-
-We were able to replicate figure 3 based on our rejection sampling technique.
+whose pdf and quantile function is implemented below,
 
 ```{r message=FALSE, warning=FALSE}
 proposal_density <- function(x) {
@@ -200,7 +198,11 @@ proposal_density <- function(x) {
 proposal_quantile <- function(x) {
   -log(1 - x) / 0.09
 }
+```
 
+We use the reject sampler to obtain the posterior samples from the target distribution.
+
+```{r message=FALSE, warning=FALSE}
 rejection_sampler <- function(N, K, true_dens, prop_dens, prop_quan) {
   res <- matrix(NA, 2, N)
   for (i in 1:N) {
@@ -223,7 +225,11 @@ rejection_sampler <- function(N, K, true_dens, prop_dens, prop_quan) {
   }
   return(res)
 }
+```
 
+The rejection factor $K$ is obtained numerically. Specifically, we compute the maximum of the ratio of $f(x)/q(x)$ within the range (0, 60). The result shows that sup$\frac{f(x)}{q(x)} \approx 14.078$. Therefore, we can safely pick $K = 15$.
+
+```{r message=FALSE, warning=FALSE}
 ## Compute rejection factor K
 N <- 100000
 x_vec <- seq(1e-5, 60, length.out = N)
@@ -231,6 +237,11 @@ true_dens <- true_density(x_vec)
 prop_dens <- proposal_density(x_vec)
 print(sprintf("sup f(x)/q(x) is approximate to %.3f", max(true_dens / prop_dens)))
 K <- 15
+```
+
+Finally, we replicate figure 3 and show the results below.
+
+```{r message=FALSE, warning=FALSE}
 ## sample
 set.seed(5)
 res <- rejection_sampler(N, K = K,
@@ -854,3 +865,13 @@ Let $x-\epsilon = \frac{1}{t}$ so that $(-\infty,x-1]$ maps to $(0,1]$. Then the
 \begin{align}
 F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg)^{-\frac{1-\delta}{\delta}} + \frac{1 - \delta}{2\delta - 1} \Bigg(\frac{1}{t}\Bigg)^{-1} \Bigg\}\frac{\phi_{\tau}(x-1/t)}{t^2}dt
 \end{align}
+
+```{python eval=FALSE, python.reticulate = FALSE}
+def integrand_transformed(t, x, delta, tau):
+    t_inv = 1/t
+    return (t_inv*t_inv - (delta / (2*delta - 1)) * t_inv**(1 / delta - 3) +
+            ((1 - delta) / (2*delta - 1)) * t_inv) * \
+            normal_density(x - t_inv, tau)
+```
+
+However, this integrand still suffers from the same numerical issue. Therefore, we choose to adjust `points` parameter in this project.
