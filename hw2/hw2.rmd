@@ -376,7 +376,7 @@ plot(1:sample_size, apply(sample4, 1, D),
   main = "Trace plot for Q2 lambda = 1")
 ```
 
-Looking at the acceptance rates, we observe that $Q_2$ constantly has a higher acceptance rate.
+Looking at the acceptance rates, we observe that $Q_2$ consistently has a higher acceptance rate.
 
 - Q1 with $\lambda = 0.5$: `r round(mean(result1$accept_rate), 4)`
 - Q1 with $\lambda = 1$: `r round(mean(result2$accept_rate), 4)`
@@ -499,7 +499,7 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
   # Initial values
   Beta_1 <- 10
   Beta_2 <- 1
-  Beta_3 <- 1 
+  Beta_3 <- 1
   sigma2 <- 1
 
   # Chain containers
@@ -520,13 +520,13 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
     var.Beta_1 <- solve(t(zeta) %*% zeta / sigma2 + inv.sigma.beta)
     mean.Beta_1 <- var.Beta_1 %*% (t(zeta) %*% (Y - eta) / sigma2)
     Beta_1 <- rnorm(1, mean.Beta_1, sqrt(var.Beta_1))
-    
+
     # Update Beta 2 and Beta 3
 
     # Propose new values
     proposed_beta_2 <- rnorm(1, mean = Beta_2, sd = 0.05)
     proposed_beta_3 <- rnorm(1, mean = Beta_3, sd = 0.05)
-    
+
     # Compute acceptance ratio
     log_acceptance_ratio_beta <- sum(likelihood(Beta_1, proposed_beta_2, proposed_beta_3, sigma2, X, Y)) +
       prior_beta(proposed_beta_2) + prior_beta(proposed_beta_3) -
@@ -543,7 +543,7 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
       Beta_3 <- Beta_3
       acceptance_beta <- 0
     }
-    
+
     # Update Sigma2
     # Propose sigma2
     proposed_sigma2 <- rgamma(1, shape = 8, scale = 0.5)
@@ -562,7 +562,6 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
       acceptance_sigma <- 0
     }
 
-    
     if (index > nburn && (index - nburn) %% nthin == 0) {
       Beta_1.chain[, (index - nburn) / nthin] <- Beta_1
       Beta_2.chain[, (index - nburn) / nthin] <- Beta_2
@@ -573,14 +572,13 @@ mix_sampler <- function(X, Y, nburn, nsim, nthin, tau2 = 10, a = 1, b = 10) {
     }
   }
 
-  list(Beta_1.chain = Beta_1.chain, Beta_2.chain = Beta_2.chain, Beta_3.chain = Beta_3.chain, sigma2.chain = sigma2.chain, 
+  list(Beta_1.chain = Beta_1.chain, Beta_2.chain = Beta_2.chain, Beta_3.chain = Beta_3.chain, sigma2.chain = sigma2.chain,
   acceptance_beta = acceptance_beta.chain, acceptance_sigma = acceptance_sigma.chain)
 }
 ```
 
 ### (1) Pseudocode for final MCMC algorithm
-```{r}
-## Read the data
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 gls <- load("./glm dat.RData")
 ```
 
@@ -607,10 +605,10 @@ gls <- load("./glm dat.RData")
 - **Initialize**: Starting values for $\beta_1$, $\beta_2$, $\beta_3$, and $\sigma^2$; containers for chains of sampled values and acceptance rates
 - **For Each Iteration** (from 1 to nsim + nburn):
   - **Update $\beta_1$** using Gibbs sampling:
-    - Let 
+    - Let
         $\sigma^{2}_{\beta}$ is the variance of prior distribution of $\beta_1$
         $\eta = \frac{1}{1 + \beta_2 \exp(\beta_3 X)}$ and $\zeta = X \cdot \eta$
-      We have         
+      We have
         $$\sigma^2_{\beta_1} = \left( \frac{\zeta^T\zeta} {\sigma^{2}} + \sigma^{-2}_{\beta} \right)^{-1}$$
         $$\mu_{\beta_1} =  \frac{\sigma^2_{\beta_1}}{\sigma^2}\zeta^T (Y - \eta) $$
       The posterior distribution for $\beta_1$
@@ -637,7 +635,7 @@ This sampler combines Gibbs sampling for updating $\beta_1$ and Metropolis-Hasti
 result <- mix_sampler(X, Y, 100000, 100000, 1)
 ```
 
-### (2) Diagnostics 
+### (2) Diagnostics
 ```{r include=FALSE}
 ## * Prediction using posterior mean
 beta1.posmean <- mean(result$Beta_1.chain[1,])
@@ -699,7 +697,7 @@ plot(density(result$Beta_3.chain[1,]), main = "Beta 3")
 plot(density(result$sigma2.chain), main = "Sigma 2")
 ```
 
-### (5) Check correlation 
+### (5) Check correlation
 ```{r include=FALSE}
 ## check the correlation between the parameters using corrlation matrix plot
 df <- cbind(result$Beta_1.chain[1,], result$Beta_2.chain[1,], result$Beta_3.chain[1,], result$sigma2.chain)
@@ -711,7 +709,7 @@ cov_beta <- c(cov(df)[1,2], cov(df)[1,3], cov(df)[2,3])
 chart.Correlation(df, histogram=TRUE, pch=19)
 ```
 
-- From the correlation matrix, we can see that the correlations is rather high for $\beta_1$, $\beta_2$ 
+- From the correlation matrix, we can see that the correlations is rather high for $\beta_1$, $\beta_2$
 `r cor_matrix[1,2]`,  $\beta_1$ and $beta_3$ `r cor_matrix[1,3]` and  $\beta_2$ and  $\beta_3$ `r cor_matrix[2,3]` has rather high correlation.
 
 - The joint distribution of \((\beta_1, \beta_2)\) is given by:
@@ -746,13 +744,13 @@ chart.Correlation(df, histogram=TRUE, pch=19)
 calculate_weights <- function(beta_samples, old_var, new_var) {
   # Calculate the density under the old priors
   old_prior_density <- dnorm(beta_samples, mean = 0, sd = sqrt(old_var), log = TRUE)
-  
+
   # Calculate the density under the new priors
   new_prior_density <- dnorm(beta_samples, mean = 0, sd = sqrt(new_var), log = TRUE)
-  
+
   # Calculate weights as the ratio of new prior density to old prior density
   weights <- exp(new_prior_density - old_prior_density)
-  
+
   return(weights)
 }
 
@@ -772,13 +770,13 @@ weighted_mean_beta3 <- sum(weights_beta3 * result$Beta_3.chain) / sum(weights_be
 calculate_weights_sigma2 <- function(sigma2_samples, old_shape, old_scale, new_shape, new_scale) {
   # Calculate the density under the old prior
   old_prior_density <- dgamma(sigma2_samples, shape = old_shape, scale = old_scale, log = TRUE)
-  
+
   # Calculate the density under the new prior
   new_prior_density <- dgamma(sigma2_samples, shape = new_shape, scale = new_scale, log = TRUE)
-  
+
   # Calculate weights as the ratio of new prior density to old prior density
   weights_sigma2 <- exp(new_prior_density - old_prior_density)
-  
+
   return(weights_sigma2)
 }
 
@@ -789,11 +787,11 @@ weighted_mean_sigma2 <- sum(weights_sigma2 * result$sigma2.chain) / sum(weights_
 
 - Compute the weight
 
-\[ 
+\[
 w_{\beta_i} = \frac{\text{NewPrior}(\beta_i)}{\text{OriginalPrior}(\beta_i)}; \\
 w_{\sigma^2} = \frac{\text{NewPrior}(\sigma^2)}{\text{OriginalPrior}(\sigma^2)}
 \]
- 
+
 - Normalize the weight
 
 \[
