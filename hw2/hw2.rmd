@@ -167,14 +167,23 @@ F_vec = np.vectorize(lib_1.f_gsl)
 
 # Problem 2
 
-The objective of this problem is to obtain a sample from the exponentially tilted positive stable distribution which has the following pdf.
+The objective of this problem is to obtain the posterior samples from the exponentially tilted positive stable distribution which has the following pdf.
 
 \begin{align*}
 f(x; \theta)
 &= \sqrt{\frac{1}{4\pi}} \frac{\text{exp}(-\frac{1}{4x} - \theta x)}{x^{3/2} \text{exp}(-\sqrt{\theta})} = \frac{\text{exp}(-\frac{1}{4x} - \theta x +\sqrt{\theta})}{\sqrt{4\pi} x^{3/2}}
 \end{align*}
 
-To sample from this distribution we use an exponential distribution with rate 0.09 as our proposal dtsribution which has the pdf $q(x)$ as below.
+We implemented this distribution as this,
+
+```{r message=FALSE, warning=FALSE}
+true_density <- function(x, theta = 0.1) {
+  exp(-1/(4*x) - theta*x + sqrt(theta)) / (sqrt(4*pi) * x^(3/2))
+}
+```
+
+To sample from this distribution we use an exponential distribution with rate 0.09 as our proposal distribution which has a heavier tail compared to the target $f(x)$. The proposal distribution $q(x)$ is specified as,
+
 $$
 q(x) = 0.09 e^{-0.09x}
 $$
@@ -184,10 +193,6 @@ Then we use a rejection sampling technique to obtain the 100000 sample. The firs
 We were able to replicate figure 3 based on our rejection sampling technique.
 
 ```{r message=FALSE, warning=FALSE}
-true_density <- function(x, theta = 0.1) {
-  exp(-1/(4*x) - theta*x + sqrt(theta)) / (sqrt(4*pi) * x^(3/2))
-}
-
 proposal_density <- function(x) {
   0.09 * exp(-0.09 * x)
 }
