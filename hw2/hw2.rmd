@@ -27,7 +27,7 @@ F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg
 
 Then we proceeded to use the three different ways to intergate this function in python and C++ using gsl. Complete code is submitted with the homework. The below figure shows the estimate of the CDF for the two different values of $\delta$ and for different ranges of $X$.
 
-![](q1plot.png){width="70%"}
+![](q1plot.png){width="70%", fig.align = 'center'}
 
 ## Define integrand in Python
 Based on the previous calculation, we define the following integrand in python.
@@ -55,6 +55,7 @@ F_vec = np.vectorize(F)
 ```
 
 The computation time is 0.66s.
+
 ```{python eval=FALSE, python.reticulate = FALSE}
 start = time.time()
 X_vals1 = np.linspace(-100, 100, num=2000)
@@ -66,6 +67,7 @@ print('running time:', end - start)
 ## Define integrate in C++
 
 Below we define a similar integrand in C++
+
 ```{Rcpp eval=FALSE}
 extern "C"
 {
@@ -190,7 +192,8 @@ $$
 
 Then we use a rejection sampling technique to obtain the 100000 sample. The first step in the rejection sampling was to determine  $k$, the rejection factor. This was set by obtaining the maximum of the ratio of $f(x)/q(x)$ from a random sample. Based on our proposal distribution we set $k$ as 15.
 
-We were able to replicate figure 3 based on our rejection sampling technique. 
+We were able to replicate figure 3 based on our rejection sampling technique.
+
 ```{r message=FALSE, warning=FALSE}
 true_density <- function(x, theta = 0.1) {
   exp(-1/(4*x) - theta*x + sqrt(theta)) / (sqrt(4*pi) * x^(3/2))
