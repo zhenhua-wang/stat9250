@@ -17,17 +17,9 @@ F(x) &= 1 - \int_{x-1}^\infty \phi_{\tau}(\epsilon)d\epsilon - \int_{-\infty}^{x
 &= \int_{-\infty}^{x-1} \{1 - \frac{\delta}{2\delta - 1}(x - \epsilon)^{-\frac{1-\delta}{\delta}} + \frac{1 - \delta}{2\delta - 1} (x - \epsilon)^{-1} \}\phi_{\tau}(\epsilon)d\epsilon
 \end{align}
 
-We started the problem with defining the integrand as in the above equation in python and intergrating it in python as well. But this failed as we saw jumps in the CDF. Hence we transformed the integral such that the integral is in the finite interval $(0,1]$.
+Then we proceeded to use the three different ways to intergate this function in python and C++ using gsl. The below figure shows the estimate of the CDF for the two different values of $\delta$ and for different ranges of $X$.
 
-Let $x-\epsilon = \frac{1}{t}$ so that $(-\infty,x-1]$ maps to $(0,1]$. Then the CDF $F(x)$ can be written as below,
-
-\begin{align}
-F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg)^{-\frac{1-\delta}{\delta}} + \frac{1 - \delta}{2\delta - 1} \Bigg(\frac{1}{t}\Bigg)^{-1} \Bigg\}\frac{\phi_{\tau}(x-1/t)}{t^2}dt
-\end{align}
-
-Then we proceeded to use the three different ways to intergate this function in python and C++ using gsl. Complete code is submitted with the homework. The below figure shows the estimate of the CDF for the two different values of $\delta$ and for different ranges of $X$.
-
-![](q1plot.png){width="70%", fig.align = 'center'}
+![](q1plot.png)
 
 ## Define integrand in Python
 Based on the previous calculation, we define the following integrand in python.
@@ -98,7 +90,7 @@ integrand_cpp = LowLevelCallable(lib.integrand)
 
 When called with `si.quad` with the same parameters, we observer that the running time reduces significantly to 0.04.
 
-## Integrate in C++
+## Integrate in C++ using GSL
 
 Similar as `si.quad`, `gsl_integration_qagp` allows specifying the high density region through `pts` parameters. Unlike python, `pts` includes the integral bounds. We specify `pts` to be an array of length 4, and set `pts[0]` and `pts[3]` to two bounds. We then set `pts[1]` and `pts[2]` to lies in the intersection between `(-10, 100)` and `(pts[0], pts[3])`.
 ```{Rcpp eval=FALSE}
@@ -843,3 +835,11 @@ weighted_mean_sigma2_lv <- sum(weights_sigma2_lv * result$sigma2.chain) / sum(we
 - The results are not sensitive to the choice of prior, which is a good sign for the robustness of the model.
 
 # Appendix
+## Question 1: transformation
+We started the problem with defining the integrand as in the above equation in python and intergrating it in python as well. But this failed as we saw jumps in the CDF. Hence we transformed the integral such that the integral is in the finite interval $(0,1]$.
+
+Let $x-\epsilon = \frac{1}{t}$ so that $(-\infty,x-1]$ maps to $(0,1]$. Then the CDF $F(x)$ can be written as below,
+
+\begin{align}
+F(x) &= \int_{0}^{1} \Bigg\{1 - \frac{\delta}{2\delta - 1}\Bigg(\frac{1}{t}\Bigg)^{-\frac{1-\delta}{\delta}} + \frac{1 - \delta}{2\delta - 1} \Bigg(\frac{1}{t}\Bigg)^{-1} \Bigg\}\frac{\phi_{\tau}(x-1/t)}{t^2}dt
+\end{align}
