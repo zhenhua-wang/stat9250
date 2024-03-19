@@ -1,6 +1,6 @@
 ---
 title: Homework 2
-author: Zhenhua Wang
+author: Zhenhua Wang, Shalini Mahanthege, Zewei Kong
 output: pdf_document
 ---
 
