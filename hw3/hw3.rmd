@@ -1,0 +1,34 @@
+---
+title: HW3
+author: Zhenhua Wang
+output: pdf_document
+---
+
+# Problem 3
+## (a)
+$$
+Y_{ij} \sim N(\mu, \sigma_{\tau}^2 + \sigma_{\epsilon}^2)
+$$
+
+$$
+log(f(Y)) = 
+$$
+
+## (b)
+Let $w_i = \mu + \tau_i$, $z = (y_{ij}, w_i)^T$, and $\theta = (\mu, \sigma^2_{\tau}, \sigma^2_{\epsilon})^T$. Then, we have
+\begin{align*}
+l(\theta) &= log f(Z | \theta) - log f(w | Y, \theta)\\
+\end{align*}
+where
+\begin{align*}
+w | \theta &\sim N(\mu, \sigma^2_{\tau})\\
+z | \theta &\sim N\left(
+\begin{bmatrix}
+\mu \\
+\mu
+\end{bmatrix},
+\begin{bmatrix}
+\sigma^2_{\tau} + \sigma^2_{\epsilon} & \sigma^2_{\tau} \\
+\sigma^2_{\tau} & \sigma^2_{\tau}
+\end{bmatrix}\right)
+\end{align*}
