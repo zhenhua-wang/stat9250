@@ -1,5 +1,5 @@
-hw1/hw1.pdf
-hw2/hw2.pdf
+*.pdf
+*~
 hw2/__pycache__/
 hw2/glm dat.RData
 .Rhistory
