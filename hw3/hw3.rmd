@@ -6,13 +6,19 @@ output: pdf_document
 
 # Problem 3
 ## (a)
-$$
-Y_{ij} \sim N(\mu, \sigma_{\tau}^2 + \sigma_{\epsilon}^2)
-$$
+Given:
 
-$$
-log(f(Y)) = 
-$$
+\[ L(\mu, \sigma^2, \sigma_\tau^2) = \prod_{i=1}^{T} \prod_{j=1}^{n_i} \int f(Y_{ij} | \mu, \tau_i, \sigma^2) f(\tau_i | \sigma_\tau^2) d\tau_i \]
+
+where
+
+- \( f(Y_{ij} | \mu, \tau_i, \sigma^2) \) is the density function of \( Y_{ij} \), assuming \( Y_{ij} \) is normally distributed with mean \( \mu + \tau_i \) and variance \( \sigma^2 \),
+- \( f(\tau_i | \sigma_\tau^2) \) is the density function of \( \tau_i \), with \( \tau_i \) assumed to be normally distributed with mean 0 and variance \( \sigma_\tau^2 \),
+
+Integral simplifies to:
+
+\[ L(\mu, \sigma^2, \sigma_\tau^2) = \prod_{i=1}^{T} \prod_{j=1}^{n_i} \frac{1}{\sqrt{2\pi(\sigma^2 + \sigma_\tau^2)}} \exp\left(-\frac{(Y_{ij} - \mu)^2}{2(\sigma^2 + \sigma_\tau^2)}\right) \]
+
 
 ## (b)
 Let $w_i = \mu + \tau_i$, $z = (y_{ij}, w_i)^T$, and $\theta = (\mu, \sigma^2_{\tau}, \sigma^2_{\epsilon})^T$. Then, we have
