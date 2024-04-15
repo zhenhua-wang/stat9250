@@ -19,6 +19,7 @@ for (i in 1:epoch) {
   resid <- Y - X %*% beta
   ## pick a coordinate
   for (j in 1:P) {
+    ## get residual for all except for j
     resid <- resid + X[, j] * beta[j]
     delta_linear <- mean(resid * X[, j])
     ## proceed with the negative direction
@@ -27,6 +28,7 @@ for (i in 1:epoch) {
     } else if (delta_linear > lambda) {
       beta[j] <- delta_linear - lambda / 2
     }
+    ## restore full residual
     resid <- resid - X[, j] * beta[j]
   }
   ## record loss
@@ -40,3 +42,7 @@ beta <- matrix(beta, P, 1)
 rownames(beta) <- colnames(X)
 rownames(beta)[1] <- "(intercept)"
 beta
+
+library(glmnet)
+model <- glmnet(X[, 2:10], Y, alpha = 1, lambda = lambda)
+coef(model)
