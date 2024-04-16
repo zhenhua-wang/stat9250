@@ -21,20 +21,45 @@ Integral simplifies to:
 
 
 ## (b)
-Let $w_i = \mu + \tau_i$, $z = (y_{ij}, w_i)^T$, and $\theta = (\mu, \sigma^2_{\tau}, \sigma^2_{\epsilon})^T$. Then, we have
-\begin{align*}
-l(\theta) &= log f(Z | \theta) - log f(w | Y, \theta)\\
-\end{align*}
-where
-\begin{align*}
-w | \theta &\sim N(\mu, \sigma^2_{\tau})\\
-z | \theta &\sim N\left(
-\begin{bmatrix}
-\mu \\
-\mu
-\end{bmatrix},
-\begin{bmatrix}
-\sigma^2_{\tau} + \sigma^2_{\epsilon} & \sigma^2_{\tau} \\
-\sigma^2_{\tau} & \sigma^2_{\tau}
-\end{bmatrix}\right)
-\end{align*}
+Given the latent variables \( \eta_i \), the complete-data log likelihood of the observed data \( Y \) and latent data \( \eta \) under the assumed model is given by:
+  
+  \[ \log L(\mu, \sigma_{\tau}^2, \sigma_{\epsilon}^2; Y, \eta) = -\frac{T}{2} \log(2\pi \sigma_{\tau}^2) - \frac{1}{2 \sigma_{\tau}^2} \sum_{i=1}^T (\eta_i - \mu)^2 - \sum_{i=1}^T \frac{n_i}{2} \log(2\pi \sigma_{\epsilon}^2) - \frac{1}{2 \sigma_{\epsilon}^2} \left(\sum_{i=1}^T \sum_{j=1}^{n_i} (Y_{ij} - \overline{Y}_i)^2 + \sum_{i=1}^T n_i (\overline{Y}_i - \eta_i)^2 \right) \]
+
+Known that \((\eta_i, Y_{i1}, Y_{i2}, ... ,Y_{in_i})\) is multivariate normal distribution, then we can use the property for conditional distribution of multivariate normal distribution. 
+
+Given the observations \((Y_{i1}, \dots, Y_{in_i})\), the latent variable \(\eta_i\) is normally distributed conditioned on these observations:
+  
+  \[ \eta_i \mid Y_{i1}, \dots, Y_{in_i} \sim N(\mu_{\eta}, \sigma_{\eta}^2) \]
+
+## EM Algorithm Pseudocode
+
+1. Initialize parameters:
+   \[\mu^{(0)}, {\sigma_\tau^2}^{(0)}, {\sigma_\epsilon^2}^{(0)}\]
+2. Set convergence threshold epsilon.
+3. Set maximum number of iterations, max_iter.
+4. Initialize iteration counter t = 0.
+While not converged and t < max_iter.
+ 
+**E-Step:**
+
+- Compute for each group i:
+       \[ w_i = \frac{\sigma_{\epsilon}^2 / n_i}{\sigma_{\tau}^2 + \sigma_{\epsilon}^2 / n_i} \]
+- Compute the conditional mean:
+       \[ \mu_{\eta} = \mu + (1-w_i) (\overline{Y}_i - \mu) \]
+- Compute the conditional variance:
+       \[ \sigma_{\eta}^2  = w_i \sigma_{\tau}^2 \]
+- Compute the expected value of the complete-data log likelihood:
+       \[ E_{\eta_i \mid Y_{i1}, \dots, Y_{in_i}}(l) = -\frac{T}{2} \log(2\pi \sigma_{\tau}^2) - \frac{1}{2 \sigma_{\tau}^2} \sum_{i=1}^T E(\eta_i - \mu)^2 - \sum_{i=1}^T \frac{n_i}{2} \log(2\pi \sigma_{\epsilon}^2) - \frac{1}{2 \sigma_{\epsilon}^2} \left(\sum_{i=1}^T \sum_{j=1}^{n_i} (Y_{ij} - \overline{Y}_i)^2 + \sum_{i=1}^T n_i E(\overline{Y}_i - \eta_i)^2 \right) \]
+       
+**M-Step:**
+
+- Update $\mu$:
+          \[ \mu^{(t+1)} = \frac{1}{T} \sum_{i=1}^T E(\eta_i)=(1-w_i^{(t)})\overline{Y}_i+ w_i^{(t)}\mu^{(t)}\]
+- Update $\sigma_\tau^2$:
+          \[ \sigma_{\tau}^{2(t+1)} = \frac{1}{T}\sum_{i=1}^T[(1-w_i^{(t)})\overline{Y}_i+ w_i^{(t)}\mu^{(t)}]^2 - (\mu^{(t+1)})^2\]
+- Update $\sigma_\epsilon^2$:
+          \[ \sigma_{\epsilon}^{2(t+1)} = \frac{1}{\sum_{i=1}^T n_i} \sum_{i=1}^T \sum_{j=1}^{n_i} (Y_{ij} - \overline{Y}_i)^2 + \frac{\sum_{i=1}^T n_i {w_i^{(t)}}^2(\overline{Y}_i - \mu^{(t)})^2}{\sum_{i=1}^Tn_i}\]
+          
+**Check for Convergence **
+
+- If the change in the log likelihood is less than epsilon, stop.
