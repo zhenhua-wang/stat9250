@@ -63,3 +63,133 @@ While not converged and t < max_iter.
 **Check for Convergence **
 
 - If the change in the log likelihood is less than epsilon, stop.
+
+### (3)
+```{r}
+# Vectors of conception percentages for each bull
+bull1 <- c(46, 31, 37, 62, 30)
+bull2 <- c(70, 59)
+bull3 <- c(52, 44, 57, 40, 67, 64, 70)
+bull4 <- c(47, 21, 70, 46, 14)
+bull5 <- c(42, 64, 50, 69, 77, 81, 87)
+bull6 <- c(35, 68, 59, 38, 57, 76, 57, 29, 60)
+
+# Vectors of sample sizes for each bull
+n <- c(5, 2, 7, 5, 7, 9)
+
+# Combine the conception percentages into one vector
+conceptions <- c(bull1, bull2, bull3, bull4, bull5, bull6)
+
+```
+
+```{r}
+# Fit the model
+EMAlgorithm <- function(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter) {
+  # Initialize parameters
+  mu <- mu_init
+  sigma_tau2 <- sigma_tau2_init
+  sigma_eps2 <- sigma_eps2_init
+  
+  # Initialize other variables
+  N <- length(n)  # Number of groups
+  t <- 0  # Iteration counter
+  converged <- FALSE
+  log_likelihood_old <- -Inf
+  mu_chain <- numeric(max_iter)
+  sigma_tau2_chain <- numeric(max_iter)
+  sigma_eps2_chain <- numeric(max_iter)
+  iter_chain <- numeric(max_iter)
+  
+  while (!converged && t < max_iter) {
+    t <- t + 1
+    
+    mu_chain[t] <- mu
+    sigma_tau2_chain[t] <- sigma_tau2
+    sigma_eps2_chain[t] <- sigma_eps2
+    iter_chain[t] <- t
+    
+    # E-step: Calculate weights and expected values
+    w <- sigma_eps2 / (n * sigma_tau2 + sigma_eps2)
+    Y_bar <- sapply(Y, mean)  # Calculate mean for each group
+    mu_eta <- mu + (1 - w) * (Y_bar - mu)
+    mu_old <- mu
+    sigma_eta2 <- w * sigma_tau2
+    
+    # Calculate expected log-likelihood
+    log_likelihood_new <- -N/2 * log(2 * pi * sigma_tau2) -
+      sum((mu_eta - mu)^2 / (2 * sigma_tau2)) -
+      sum(n)/2 * log(2 * pi * sigma_eps2) -
+      sum(sapply(1:N, function(i) sum((Y[[i]] - Y_bar[i])^2))) / (2 * sigma_eps2) -
+      sum(n * w * (Y_bar - mu_eta)^2) / (2 * sigma_eps2)
+    
+    # M-step: Update parameters
+    mu <- 1/N * sum((1-w) * Y_bar + w * mu_old)
+    sigma_tau2 <- 1/N * sum(((1 - w) * Y_bar + w * mu_old)^2 + sigma_eta2^2) - mu^2
+    sigma_eps2 <- sum(sapply(1:N, function(i) sum((Y[[i]] - Y_bar[i])^2))/sum(n) + sum(n * w^2 * (Y_bar - mu_old)^2)) / sum(n)
+    
+
+    
+    # Check for convergence
+    if (abs(log_likelihood_new - log_likelihood_old) < epsilon) {
+      converged <- TRUE
+    } else {
+      log_likelihood_old <- log_likelihood_new
+    }
+  }
+  
+  return(list(mu = mu, sigma_tau2 = sigma_tau2, sigma_eps2 = sigma_eps2, iterations = t,
+              mu_chain = mu_chain[1:t], sigma_tau2_chain = sigma_tau2_chain[1:t],
+              sigma_eps2_chain = sigma_eps2_chain[1:t], iter_chain = iter_chain[1:t]))
+}
+
+```
+
+```{r}
+# Example data
+# Y <- list(c(100, 101, 99), c(102, 103, 101), c(95, 96, 94))
+# n <- c(3, 3, 3)
+Y <- list(bull1, bull2, bull3, bull4, bull5, bull6)
+n <- c(5, 2, 7, 5, 7, 9)
+mu_init <- mean(sapply(Y, mean))
+sigma_tau2_init <- mean(sapply(Y, var))
+sigma_eps2_init <- var(conceptions)
+epsilon <- 1e-6
+max_iter <- 100
+
+# Run the EM algorithm
+results <- EMAlgorithm(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter)
+print(results)
+
+```
+
+### (4)
+
+```{r}
+mu_init <- mean(sapply(Y, mean))
+sigma_tau2_init <- mean(sapply(Y, var))
+sigma_eps2_init <- var(conceptions)
+```
+
+- We choose the initial values for the parameters \(\mu^{(0)}\) = `r mu_init` is the mean of overall mean, \(\sigma_{\tau}^2^{(0)}\) = `r sigma_tau2_init`is the mean of the variance for each groups, and \(\sigma_{\epsilon}^2^{(0)}\) = `r sigma_eps2_init`is the overall variance.
+- The convergence threshold is set to `r epsilon` and the maximum number of iterations is set to `r max_iter`. We compare the change in the log likelihood between iterations to the convergence threshold to determine if the algorithm has converged.
+
+### (5) Plot the value of the estimate for the parameter versus the number of iterations 
+
+```{r}
+plot(results$iter_chain, results$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
+plot(results$iter_chain, results$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
+plot(results$iter_chain, results$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
+```
+
+```{r}
+results_2 <- EMAlgorithm(Y, n, 100, 1, 1, epsilon, max_iter)
+plot(results_2$iter_chain, results_2$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
+plot(results_2$iter_chain, results_2$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
+plot(results_2$iter_chain, results_2$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
+
+results_3 <- EMAlgorithm(Y, n, 50, 100, 100, epsilon, max_iter)
+plot(results_3$iter_chain, results_3$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
+plot(results_3$iter_chain, results_3$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
+plot(results_3$iter_chain, results_3$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
+
+```
