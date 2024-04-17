@@ -4,6 +4,179 @@ author: Zhenhua Wang
 output: pdf_document
 ---
 
+# Problem 1
+
+# Problem 1
+
+
+```{r}
+load("H:/My Drive/Simulations class/Homeworks/HW3_shalini/GPD_samples.RData")
+n <- length(samples)
+#min(samples)
+
+d_log_l <- function(param){
+  d_out <- array(NA, dim = 2)
+  out <- ( 1 + param[2] *(samples - mu)/param[1] )
+  d_out[1] <- -n/param[1] + ( 1/param[2] + 1) * sum( out^(-1) * param[2] * (samples - mu)/ param[1]^2 )
+  d_out[2] <- (1/param[2]^2) * sum(log(out))  - ( 1/param[2] + 1) * sum( out^(-1)*(samples - mu)/ param[1] )
+  return(d_out)
+}
+
+H_log_l <- function(param){
+  H_mat <- matrix(NA, nrow = 2, ncol = 2)
+  out <- ( 1 + param[2] *(samples - mu)/param[1] )
+  H_mat[1,1] <- n/param[1]^2 + (1/param[2]+1) * param[2]^2/param[1]^4 * sum( out^(-2)*(samples-mu) ) - 
+    2 * (1/param[2]+1) * param[2]/param[1]^3 * sum(out^(-1)*(samples-mu))
+  H_mat[2,1] <- H_mat[1,2] <- sum( out^(-1) * (samples-mu)/param[1]^2) - (1/param[2]+1) * param[2]/param[1]^3 * sum(out^(-2)*(samples-mu)^2)
+  H_mat[2,2] <- - 2/param[2]^3 * sum(log(out)) + 2/param[2]^2 * sum( out^(-1)*(samples - mu)/param[1] ) +
+    (1/param[2] + 1) * sum(out^(-2) * (samples - mu)^2/param[1]^2)
+  return(H_mat)
+}
+
+param_diff <- 1
+i <- 1
+
+mu <- 10.5
+param <- c(1, 0.1) #sigma and xi respectively # we keep mu a constant 
+
+
+while(param_diff>1e-10){
+  d_l <- d_log_l(param)
+  H <- H_log_l(param)
+  param_new <- param - solve(H) %*% d_l
+  #lik_new <- log_l(param_new)
+  param_diff <- max(abs(param - param_new))
+  param <- param_new
+  if(i%%100 == 0) print(i)
+  i <- i+1
+  #print(paste0("i = ",i))
+  #print(param_new)
+}
+
+est_params_BFGS <- param_new
+
+I_mat <- -H_log_l(param_new)
+std_errors <- sqrt(diag(solve(I_mat)))
+
+alpha <- 0.05  # Confidence level
+z_score <- qnorm(1 - alpha/2)
+CI_NR <- cbind(param_new - z_score * std_errors,
+                 param_new + z_score * std_errors)
+
+
+# optim function BFGS -----------------------------------------------------
+
+n_log_l <- function(param){
+  n <- length(samples)
+  mu <- 10.5
+  if(all(param > 0.00001)){
+    out <- ( 1 + param[2] *(samples - mu)/param[1] )
+    out = -n*log( param[1] ) - (1/param[2] + 1) * sum(log(out))
+    return(-out)
+  }else
+    return(+1e+6)
+}
+
+init_param <- c(1, 0.1) #sigma and xi respectively # we keep mu a constant 
+
+fit <- optim(init_param, n_log_l, method = "BFGS", hessian = TRUE)
+est_params_BFGS <- fit$par
+
+I_mat <- fit$hessian
+std_errors <- sqrt(diag(solve(I_mat)))
+
+# Calculate confidence intervals
+alpha <- 0.05  # Confidence level
+z_score <- qnorm(1 - alpha/2)
+CI_BFGS <- cbind(est_params_BFGS - z_score * std_errors,
+                 est_params_BFGS + z_score * std_errors)
+
+
+
+# CG optim ----------------------------------------------------------------
+
+fit <- optim(init_param, n_log_l, method = "CG", hessian = TRUE)
+est_params_CG <- fit$par
+
+I_mat <- fit$hessian
+std_errors <- sqrt(diag(solve(I_mat)))
+
+# Calculate confidence intervals
+alpha <- 0.05  # Confidence level
+z_score <- qnorm(1 - alpha/2)
+CI_CG <- cbind(est_params_CG - z_score * std_errors,
+               est_params_CG + z_score * std_errors)
+
+
+```
+
+## Part 1
+For the Generalized Pareto Disrtibution with paramaters $\mu,\sigma, \xi$ the pdf is,
+$$f(x) = \frac{1}{\sigma}\Bigg\{1+\frac{\xi(x-\mu)}{\sigma}\Bigg\}^{-\frac{1}{\xi}-1}$$
+
+for which $x\geq\mu$ when $\xi\geq 0$, and $\mu \leq x \leq \mu - \sigma/\xi$ when $\xi<0$. 
+Now we can write the log-likelihood function based on the given support,
+
+
+$$l(x) = log\prod_{i=1}^n\frac{1}{\sigma}\Bigg\{1+\frac{\xi(x_i-\mu)}{\sigma}\Bigg\}^{-\frac{1}{\xi}-1}I_{\{x_i\geq \mu, \xi\geq0\}}I_{\{\mu\leq x_i\leq\mu-x_i/\xi, \xi<0\}}$$
+
+$$= -nlog\sigma - \Big(\frac{1}{\xi}+1\Big)\sum_{i=1}^nlog\Bigg\{1+\frac{\xi(x_i-\mu)}{\sigma}\Bigg\} \quad \text{when} \quad X_{(1)}> \mu$$
+
+and $l(x)$ is $-\infty$ when $X_{(1)}\leq \mu$.
+
+## Part 2 
+
+Since we know that $X_{(1)}>\mu$, we first set the value of $\mu$ as something smaller than the minimum of the samples. Hence we set the initial value of $\mu$ to be 10.5.
+
+### Newton-Raphson Algorithm
+For the Newton-Raphson Algorithm we first write out the first derivative vector and the hession matrix based on the log likelihood function as,
+
+$$\nabla Q(x) = \Bigg[\frac{\partial l(x)}{\partial \sigma}, \frac{\partial l(x)}{\partial \xi}\Bigg]$$
+
+$$H(x) = \begin{bmatrix}
+\frac{\partial^2 l(x)}{\partial^2 \sigma} & \frac{\partial^2 l(x)}{\partial \xi \partial \sigma}\\
+\frac{\partial^2 l(x)}{\partial \sigma \partial \xi} & \frac{\partial^2 l(x)}{\partial^2 \xi}\\
+\end{bmatrix}$$
+Pseudocode for the algorithm is as follows,
+
+- While (param_diff > 1e-10)
+  - param_new = param_old - $H(x)^{-1}\nabla Q(x)$
+  - param_diff = max(|param - param_new|)
+  - param = param_new
+
+* Starting values - we used a grid of values for $\sigma$ and $\xi$ as the starting values. Ultimately the starting values used were (1,0.1) for $\sigma$ and $\xi$ respectively. 
+* Convergence criteria - We monitored the maximum difference between the parameters between consecutive iterations. We stopped the iterations when the difference between the updates were less than $1^{-10}$
+  * Confidence interval(CI) - CI was obtained using the Information matrix which is the hessian of the neagive log-likelihood based on the estimated parameter values. 
++ $\text{StandardError}(\hat{\theta}) = \sqrt{\text{diag}(I(\hat{\theta})^{-1})}$
+  + $CI = \hat{\theta} \pm Z_{\alpha/2}\text{StandardError}(\hat{\theta})$
+  
+
+### BFGS quasi-Newton algorithm
+
+Used optim to obtained the estimators from the BFGS algorithm. We provided the negative-loglikelihood function as the minimizer for optim function. We set Hessian to be TRUE so that we can obtain the Hession matrix from the optimzer to compute the CI. We followed the same steps as in Newton-Raphson method to compute the information matrix and the CI.
+
+## Part 3
+
+Following table shows the results obtained from the three algorithms. For consistency across the different methods, initial values for $\sigma$ and $\xi$ were set as 1 and 0.1 respectively. 
+
+```{=latex}
+\begin{center}
+\begin{tabular}{ |c|c|c|c|c| } 
+\hline
+ & parameter & MLE & CI & No of Iterations \\
+\hline
+\multirow{}{}{Newton-Raphson} & \sigma & 1.1954  & (0.9244,1.4664) & 19\\ 
+& \xi & 0.2557599 & (0.0569, 0.4546) & 19 \\ 
+\multirow{}{}{BFGS} & \sigma & 1.1953947 & (0.8696,1.5212) & 35\\ 
+& \xi & 0.2557616 & (0.0452,0.4664) & 35 \\ 
+\multirow{}{}{BFGS} & \sigma & 1.1953959 & (0.8696,1.5212) & 249\\ 
+& \xi & 0.2557598 & ( 0.0452, 0.4664) & 249 \\ 
+\hline
+\end{tabular}
+\end{center}
+```
+
+
 # Problem 3
 ## (a)
 Given:
@@ -21,20 +194,235 @@ Integral simplifies to:
 
 
 ## (b)
-Let $w_i = \mu + \tau_i$, $z = (y_{ij}, w_i)^T$, and $\theta = (\mu, \sigma^2_{\tau}, \sigma^2_{\epsilon})^T$. Then, we have
-\begin{align*}
-l(\theta) &= log f(Z | \theta) - log f(w | Y, \theta)\\
-\end{align*}
-where
-\begin{align*}
-w | \theta &\sim N(\mu, \sigma^2_{\tau})\\
-z | \theta &\sim N\left(
-\begin{bmatrix}
-\mu \\
-\mu
-\end{bmatrix},
-\begin{bmatrix}
-\sigma^2_{\tau} + \sigma^2_{\epsilon} & \sigma^2_{\tau} \\
-\sigma^2_{\tau} & \sigma^2_{\tau}
-\end{bmatrix}\right)
-\end{align*}
+Given the latent variables \( \eta_i \), the complete-data log likelihood of the observed data \( Y \) and latent data \( \eta \) under the assumed model is given by:
+  
+  \[ \log L(\mu, \sigma_{\tau}^2, \sigma_{\epsilon}^2; Y, \eta) = -\frac{T}{2} \log(2\pi \sigma_{\tau}^2) - \frac{1}{2 \sigma_{\tau}^2} \sum_{i=1}^T (\eta_i - \mu)^2 - \sum_{i=1}^T \frac{n_i}{2} \log(2\pi \sigma_{\epsilon}^2) - \frac{1}{2 \sigma_{\epsilon}^2} \left(\sum_{i=1}^T \sum_{j=1}^{n_i} (Y_{ij} - \overline{Y}_i)^2 + \sum_{i=1}^T n_i (\overline{Y}_i - \eta_i)^2 \right) \]
+
+Known that \((\eta_i, Y_{i1}, Y_{i2}, ... ,Y_{in_i})\) is multivariate normal distribution, then we can use the property for conditional distribution of multivariate normal distribution. 
+
+Given the observations \((Y_{i1}, \dots, Y_{in_i})\), the latent variable \(\eta_i\) is normally distributed conditioned on these observations:
+  
+  \[ \eta_i \mid Y_{i1}, \dots, Y_{in_i} \sim N(\mu_{\eta}, \sigma_{\eta}^2) \]
+
+### EM Algorithm Pseudocode
+
+1. Initialize parameters:
+   \[\mu^{(0)}, {\sigma_\tau^2}^{(0)}, {\sigma_\epsilon^2}^{(0)}\]
+2. Set convergence threshold epsilon.
+3. Set maximum number of iterations, max_iter.
+4. Initialize iteration counter t = 0.
+While not converged and t < max_iter.
+ 
+**E-Step:**
+
+- Compute for each group i:
+       \[ w_i = \frac{\sigma_{\epsilon}^2 / n_i}{\sigma_{\tau}^2 + \sigma_{\epsilon}^2 / n_i} \]
+- Compute the conditional mean:
+       \[ \mu_{\eta} = \mu + (1-w_i) (\overline{Y}_i - \mu) \]
+- Compute the conditional variance:
+       \[ \sigma_{\eta}^2  = w_i \sigma_{\tau}^2 \]
+- Compute the expected value of the complete-data log likelihood:
+       \[ E_{\eta_i \mid Y_{i1}, \dots, Y_{in_i}}(l) = -\frac{T}{2} \log(2\pi \sigma_{\tau}^2) - \frac{1}{2 \sigma_{\tau}^2} \sum_{i=1}^T E(\eta_i - \mu)^2 - \sum_{i=1}^T \frac{n_i}{2} \log(2\pi \sigma_{\epsilon}^2) - \frac{1}{2 \sigma_{\epsilon}^2} \left(\sum_{i=1}^T \sum_{j=1}^{n_i} (Y_{ij} - \overline{Y}_i)^2 + \sum_{i=1}^T n_i E(\overline{Y}_i - \eta_i)^2 \right) \]
+       
+**M-Step:**
+
+- Update $\mu$:
+          \[ \mu^{(t+1)} = \frac{1}{T} \sum_{i=1}^T E(\eta_i)=(1-w_i^{(t)})\overline{Y}_i+ w_i^{(t)}\mu^{(t)}\]
+- Update $\sigma_\tau^2$:
+          \[ \sigma_{\tau}^{2(t+1)} = \frac{1}{T}\sum_{i=1}^T[(1-w_i^{(t)})\overline{Y}_i+ w_i^{(t)}\mu^{(t)}]^2 - (\mu^{(t+1)})^2\]
+- Update $\sigma_\epsilon^2$:
+          \[ \sigma_{\epsilon}^{2(t+1)} = \frac{1}{\sum_{i=1}^T n_i} \sum_{i=1}^T \sum_{j=1}^{n_i} (Y_{ij} - \overline{Y}_i)^2 + \frac{\sum_{i=1}^T n_i {w_i^{(t)}}^2(\overline{Y}_i - \mu^{(t)})^2}{\sum_{i=1}^Tn_i}\]
+          
+**Check for Convergence **
+
+- If the change in the log likelihood is less than epsilon, stop.
+
+## (3)
+```{r}
+# Vectors of conception percentages for each bull
+bull1 <- c(46, 31, 37, 62, 30)
+bull2 <- c(70, 59)
+bull3 <- c(52, 44, 57, 40, 67, 64, 70)
+bull4 <- c(47, 21, 70, 46, 14)
+bull5 <- c(42, 64, 50, 69, 77, 81, 87)
+bull6 <- c(35, 68, 59, 38, 57, 76, 57, 29, 60)
+
+# Vectors of sample sizes for each bull
+n <- c(5, 2, 7, 5, 7, 9)
+
+# Combine the conception percentages into one vector
+conceptions <- c(bull1, bull2, bull3, bull4, bull5, bull6)
+
+```
+
+```{r}
+# Fit the model
+EMAlgorithm <- function(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter) {
+  # Initialize parameters
+  mu <- mu_init
+  sigma_tau2 <- sigma_tau2_init
+  sigma_eps2 <- sigma_eps2_init
+  
+  # Initialize other variables
+  N <- length(n)  # Number of groups
+  t <- 0  # Iteration counter
+  converged <- FALSE
+  log_likelihood_old <- -Inf
+  mu_chain <- numeric(max_iter)
+  sigma_tau2_chain <- numeric(max_iter)
+  sigma_eps2_chain <- numeric(max_iter)
+  iter_chain <- numeric(max_iter)
+  
+  while (!converged && t < max_iter) {
+    t <- t + 1
+    
+    mu_chain[t] <- mu
+    sigma_tau2_chain[t] <- sigma_tau2
+    sigma_eps2_chain[t] <- sigma_eps2
+    iter_chain[t] <- t
+    
+    # E-step: Calculate weights and expected values
+    w <- sigma_eps2 / (n * sigma_tau2 + sigma_eps2)
+    Y_bar <- sapply(Y, mean)  # Calculate mean for each group
+    mu_eta <- mu + (1 - w) * (Y_bar - mu)
+    mu_old <- mu
+    sigma_eta2 <- w * sigma_tau2
+    
+    # Calculate expected log-likelihood
+    log_likelihood_new <- -N/2 * log(2 * pi * sigma_tau2) -
+      sum((mu_eta - mu)^2 / (2 * sigma_tau2)) -
+      sum(n)/2 * log(2 * pi * sigma_eps2) -
+      sum(sapply(1:N, function(i) sum((Y[[i]] - Y_bar[i])^2))) / (2 * sigma_eps2) -
+      sum(n * w * (Y_bar - mu_eta)^2) / (2 * sigma_eps2)
+    
+    # M-step: Update parameters
+    mu <- 1/N * sum((1-w) * Y_bar + w * mu_old)
+    sigma_tau2 <- 1/N * sum(((1 - w) * Y_bar + w * mu_old)^2 + sigma_eta2^2) - mu^2
+    sigma_eps2 <- sum(sapply(1:N, function(i) sum((Y[[i]] - Y_bar[i])^2))/sum(n) + sum(n * w^2 * (Y_bar - mu_old)^2)) / sum(n)
+    
+
+    
+    # Check for convergence
+    if (abs(log_likelihood_new - log_likelihood_old) < epsilon) {
+      converged <- TRUE
+    } else {
+      log_likelihood_old <- log_likelihood_new
+    }
+  }
+  
+  return(list(mu = mu, sigma_tau2 = sigma_tau2, sigma_eps2 = sigma_eps2, iterations = t,
+              mu_chain = mu_chain[1:t], sigma_tau2_chain = sigma_tau2_chain[1:t],
+              sigma_eps2_chain = sigma_eps2_chain[1:t], iter_chain = iter_chain[1:t]))
+}
+
+```
+
+```{r}
+# Example data
+# Y <- list(c(100, 101, 99), c(102, 103, 101), c(95, 96, 94))
+# n <- c(3, 3, 3)
+Y <- list(bull1, bull2, bull3, bull4, bull5, bull6)
+n <- c(5, 2, 7, 5, 7, 9)
+mu_init <- mean(sapply(Y, mean))
+sigma_tau2_init <- mean(sapply(Y, var))
+sigma_eps2_init <- var(conceptions)
+epsilon <- 1e-6
+max_iter <- 100
+
+# Run the EM algorithm
+results <- EMAlgorithm(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter)
+print(results)
+
+```
+
+## (4)
+
+```{r}
+mu_init <- mean(sapply(Y, mean))
+sigma_tau2_init <- mean(sapply(Y, var))
+sigma_eps2_init <- var(conceptions)
+```
+
+- We choose the initial values for the parameters \(\mu^{(0)}\) = `r mu_init` is the mean of overall mean, \({\sigma_{\tau}^2}^{(0)}\) = `r sigma_tau2_init`is the mean of the variance for each groups, and \({\sigma_{\epsilon}^2}^{(0)}\) = `r sigma_eps2_init`is the overall variance.
+- The convergence threshold is set to `r epsilon` and the maximum number of iterations is set to `r max_iter`. We compare the change in the log likelihood between iterations to the convergence threshold to determine if the algorithm has converged.
+
+## (5) Plot the value of the estimate for the parameter versus the number of iterations 
+
+```{r}
+par(mfrow=c(1,3))
+plot(results$iter_chain, results$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
+plot(results$iter_chain, results$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
+plot(results$iter_chain, results$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
+```
+
+```{r}
+par(mfrow=c(1,3))
+results_2 <- EMAlgorithm(Y, n, 100, 1, 1, epsilon, max_iter)
+plot(results_2$iter_chain, results_2$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
+plot(results_2$iter_chain, results_2$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
+plot(results_2$iter_chain, results_2$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
+
+results_3 <- EMAlgorithm(Y, n, 50, 100, 100, epsilon, max_iter)
+plot(results_3$iter_chain, results_3$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
+plot(results_3$iter_chain, results_3$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
+plot(results_3$iter_chain, results_3$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
+```
+
+- We can see for all initial values, the estimates of the parameters converge to stable values after a few iterations. 
+- For the proper initial values, the estimates converge faster and to the correct values.
+
+## (6) Use a nonparametric bootstrap to provide standard error estimates for each of parameters
+```{r}
+# Nonparametric bootstrap
+bootstrap <- function(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter, B) {
+  N <- length(n)
+  mu_boot <- numeric(B)
+  sigma_tau2_boot <- numeric(B)
+  sigma_eps2_boot <- numeric(B)
+  
+  for (i in 1:B) {
+    # Sample with replacement
+    Y_boot <- lapply(1:N, function(j) sample(Y[[j]], n[j], replace = TRUE))
+    
+    # Run the EM algorithm
+    results_boot <- EMAlgorithm(Y_boot, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter)
+    mu_boot[i] <- results_boot$mu
+    sigma_tau2_boot[i] <- results_boot$sigma_tau2
+    sigma_eps2_boot[i] <- results_boot$sigma_eps2
+  }
+  
+  return(list(mu_boot = mu_boot, sigma_tau2_boot = sigma_tau2_boot, sigma_eps2_boot = sigma_eps2_boot))
+}
+
+# Set the number of bootstrap samples
+B <- 1000
+boot_results <- bootstrap(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter, B)
+```
+
+- The number of bootstrap samples is set to `r B`. We sample with replacement from the original data and run the EM algorithm on each bootstrap sample to obtain estimates of the parameters.
+- Starting values for the EM algorithm are the same as before: \(\mu^{(0)}\) = `r mu_init`, \({\sigma_{\tau}^2}^{(0)}\) = `r sigma_tau2_init`, and \({\sigma_{\epsilon}^2}^{(0)}\) = `r sigma_eps2_init`.
+
+```{r}
+# Standard error estimates
+mu_se <- sd(boot_results$mu_boot)
+sigma_tau2_se <- sd(boot_results$sigma_tau2_boot)
+sigma_eps2_se <- sd(boot_results$sigma_eps2_boot)
+```
+- The standard error estimates for the parameters are:
+  - Standard error for \(\mu\): `r mu_se`
+  - Standard error for \(\sigma_{\tau}^2\): `r sigma_tau2_se`
+  - Standard error for \(\sigma_{\epsilon}^2\): `r sigma_eps2_se`
+```{r}
+# Approximate confidence intervals
+alpha <- 0.05
+mu_ci <- quantile(boot_results$mu_boot, c(alpha/2, 1 - alpha/2))
+sigma_tau2_ci <- quantile(boot_results$sigma_tau2_boot, c(alpha/2, 1 - alpha/2))
+sigma_eps2_ci <- quantile(boot_results$sigma_eps2_boot, c(alpha/2, 1 - alpha/2))
+```
+
+- Confidence intervals for the parameters at the 95% level are:
+  - Confidence interval for \(\mu\): (`r mu_ci[1]`, `r mu_ci[2]`)
+  - Confidence interval for \(\sigma_{\tau}^2\): (`r sigma_tau2_ci[1]`, `r sigma_tau2_ci[2]`)
+  - Confidence interval for \(\sigma_{\epsilon}^2\): (`r sigma_eps2_ci[1]`, `r sigma_eps2_ci[2]`)
+
+
