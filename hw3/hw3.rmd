@@ -4,6 +4,179 @@ author: Zhenhua Wang
 output: pdf_document
 ---
 
+# Problem 1
+
+# Problem 1
+
+
+```{r}
+load("H:/My Drive/Simulations class/Homeworks/HW3_shalini/GPD_samples.RData")
+n <- length(samples)
+#min(samples)
+
+d_log_l <- function(param){
+  d_out <- array(NA, dim = 2)
+  out <- ( 1 + param[2] *(samples - mu)/param[1] )
+  d_out[1] <- -n/param[1] + ( 1/param[2] + 1) * sum( out^(-1) * param[2] * (samples - mu)/ param[1]^2 )
+  d_out[2] <- (1/param[2]^2) * sum(log(out))  - ( 1/param[2] + 1) * sum( out^(-1)*(samples - mu)/ param[1] )
+  return(d_out)
+}
+
+H_log_l <- function(param){
+  H_mat <- matrix(NA, nrow = 2, ncol = 2)
+  out <- ( 1 + param[2] *(samples - mu)/param[1] )
+  H_mat[1,1] <- n/param[1]^2 + (1/param[2]+1) * param[2]^2/param[1]^4 * sum( out^(-2)*(samples-mu) ) - 
+    2 * (1/param[2]+1) * param[2]/param[1]^3 * sum(out^(-1)*(samples-mu))
+  H_mat[2,1] <- H_mat[1,2] <- sum( out^(-1) * (samples-mu)/param[1]^2) - (1/param[2]+1) * param[2]/param[1]^3 * sum(out^(-2)*(samples-mu)^2)
+  H_mat[2,2] <- - 2/param[2]^3 * sum(log(out)) + 2/param[2]^2 * sum( out^(-1)*(samples - mu)/param[1] ) +
+    (1/param[2] + 1) * sum(out^(-2) * (samples - mu)^2/param[1]^2)
+  return(H_mat)
+}
+
+param_diff <- 1
+i <- 1
+
+mu <- 10.5
+param <- c(1, 0.1) #sigma and xi respectively # we keep mu a constant 
+
+
+while(param_diff>1e-10){
+  d_l <- d_log_l(param)
+  H <- H_log_l(param)
+  param_new <- param - solve(H) %*% d_l
+  #lik_new <- log_l(param_new)
+  param_diff <- max(abs(param - param_new))
+  param <- param_new
+  if(i%%100 == 0) print(i)
+  i <- i+1
+  #print(paste0("i = ",i))
+  #print(param_new)
+}
+
+est_params_BFGS <- param_new
+
+I_mat <- -H_log_l(param_new)
+std_errors <- sqrt(diag(solve(I_mat)))
+
+alpha <- 0.05  # Confidence level
+z_score <- qnorm(1 - alpha/2)
+CI_NR <- cbind(param_new - z_score * std_errors,
+                 param_new + z_score * std_errors)
+
+
+# optim function BFGS -----------------------------------------------------
+
+n_log_l <- function(param){
+  n <- length(samples)
+  mu <- 10.5
+  if(all(param > 0.00001)){
+    out <- ( 1 + param[2] *(samples - mu)/param[1] )
+    out = -n*log( param[1] ) - (1/param[2] + 1) * sum(log(out))
+    return(-out)
+  }else
+    return(+1e+6)
+}
+
+init_param <- c(1, 0.1) #sigma and xi respectively # we keep mu a constant 
+
+fit <- optim(init_param, n_log_l, method = "BFGS", hessian = TRUE)
+est_params_BFGS <- fit$par
+
+I_mat <- fit$hessian
+std_errors <- sqrt(diag(solve(I_mat)))
+
+# Calculate confidence intervals
+alpha <- 0.05  # Confidence level
+z_score <- qnorm(1 - alpha/2)
+CI_BFGS <- cbind(est_params_BFGS - z_score * std_errors,
+                 est_params_BFGS + z_score * std_errors)
+
+
+
+# CG optim ----------------------------------------------------------------
+
+fit <- optim(init_param, n_log_l, method = "CG", hessian = TRUE)
+est_params_CG <- fit$par
+
+I_mat <- fit$hessian
+std_errors <- sqrt(diag(solve(I_mat)))
+
+# Calculate confidence intervals
+alpha <- 0.05  # Confidence level
+z_score <- qnorm(1 - alpha/2)
+CI_CG <- cbind(est_params_CG - z_score * std_errors,
+               est_params_CG + z_score * std_errors)
+
+
+```
+
+## Part 1
+For the Generalized Pareto Disrtibution with paramaters $\mu,\sigma, \xi$ the pdf is,
+$$f(x) = \frac{1}{\sigma}\Bigg\{1+\frac{\xi(x-\mu)}{\sigma}\Bigg\}^{-\frac{1}{\xi}-1}$$
+
+for which $x\geq\mu$ when $\xi\geq 0$, and $\mu \leq x \leq \mu - \sigma/\xi$ when $\xi<0$. 
+Now we can write the log-likelihood function based on the given support,
+
+
+$$l(x) = log\prod_{i=1}^n\frac{1}{\sigma}\Bigg\{1+\frac{\xi(x_i-\mu)}{\sigma}\Bigg\}^{-\frac{1}{\xi}-1}I_{\{x_i\geq \mu, \xi\geq0\}}I_{\{\mu\leq x_i\leq\mu-x_i/\xi, \xi<0\}}$$
+
+$$= -nlog\sigma - \Big(\frac{1}{\xi}+1\Big)\sum_{i=1}^nlog\Bigg\{1+\frac{\xi(x_i-\mu)}{\sigma}\Bigg\} \quad \text{when} \quad X_{(1)}> \mu$$
+
+and $l(x)$ is $-\infty$ when $X_{(1)}\leq \mu$.
+
+## Part 2 
+
+Since we know that $X_{(1)}>\mu$, we first set the value of $\mu$ as something smaller than the minimum of the samples. Hence we set the initial value of $\mu$ to be 10.5.
+
+### Newton-Raphson Algorithm
+For the Newton-Raphson Algorithm we first write out the first derivative vector and the hession matrix based on the log likelihood function as,
+
+$$\nabla Q(x) = \Bigg[\frac{\partial l(x)}{\partial \sigma}, \frac{\partial l(x)}{\partial \xi}\Bigg]$$
+
+$$H(x) = \begin{bmatrix}
+\frac{\partial^2 l(x)}{\partial^2 \sigma} & \frac{\partial^2 l(x)}{\partial \xi \partial \sigma}\\
+\frac{\partial^2 l(x)}{\partial \sigma \partial \xi} & \frac{\partial^2 l(x)}{\partial^2 \xi}\\
+\end{bmatrix}$$
+Pseudocode for the algorithm is as follows,
+
+- While (param_diff > 1e-10)
+  - param_new = param_old - $H(x)^{-1}\nabla Q(x)$
+  - param_diff = max(|param - param_new|)
+  - param = param_new
+
+* Starting values - we used a grid of values for $\sigma$ and $\xi$ as the starting values. Ultimately the starting values used were (1,0.1) for $\sigma$ and $\xi$ respectively. 
+* Convergence criteria - We monitored the maximum difference between the parameters between consecutive iterations. We stopped the iterations when the difference between the updates were less than $1^{-10}$
+  * Confidence interval(CI) - CI was obtained using the Information matrix which is the hessian of the neagive log-likelihood based on the estimated parameter values. 
++ $\text{StandardError}(\hat{\theta}) = \sqrt{\text{diag}(I(\hat{\theta})^{-1})}$
+  + $CI = \hat{\theta} \pm Z_{\alpha/2}\text{StandardError}(\hat{\theta})$
+  
+
+### BFGS quasi-Newton algorithm
+
+Used optim to obtained the estimators from the BFGS algorithm. We provided the negative-loglikelihood function as the minimizer for optim function. We set Hessian to be TRUE so that we can obtain the Hession matrix from the optimzer to compute the CI. We followed the same steps as in Newton-Raphson method to compute the information matrix and the CI.
+
+## Part 3
+
+Following table shows the results obtained from the three algorithms. For consistency across the different methods, initial values for $\sigma$ and $\xi$ were set as 1 and 0.1 respectively. 
+
+```{=latex}
+\begin{center}
+\begin{tabular}{ |c|c|c|c|c| } 
+\hline
+ & parameter & MLE & CI & No of Iterations \\
+\hline
+\multirow{}{}{Newton-Raphson} & \sigma & 1.1954  & (0.9244,1.4664) & 19\\ 
+& \xi & 0.2557599 & (0.0569, 0.4546) & 19 \\ 
+\multirow{}{}{BFGS} & \sigma & 1.1953947 & (0.8696,1.5212) & 35\\ 
+& \xi & 0.2557616 & (0.0452,0.4664) & 35 \\ 
+\multirow{}{}{BFGS} & \sigma & 1.1953959 & (0.8696,1.5212) & 249\\ 
+& \xi & 0.2557598 & ( 0.0452, 0.4664) & 249 \\ 
+\hline
+\end{tabular}
+\end{center}
+```
+
+
 # Problem 3
 ## (a)
 Given:
