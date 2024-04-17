@@ -204,7 +204,7 @@ Given the observations \((Y_{i1}, \dots, Y_{in_i})\), the latent variable \(\eta
   
   \[ \eta_i \mid Y_{i1}, \dots, Y_{in_i} \sim N(\mu_{\eta}, \sigma_{\eta}^2) \]
 
-## EM Algorithm Pseudocode
+### EM Algorithm Pseudocode
 
 1. Initialize parameters:
    \[\mu^{(0)}, {\sigma_\tau^2}^{(0)}, {\sigma_\epsilon^2}^{(0)}\]
@@ -237,7 +237,7 @@ While not converged and t < max_iter.
 
 - If the change in the log likelihood is less than epsilon, stop.
 
-### (3)
+## (3)
 ```{r}
 # Vectors of conception percentages for each bull
 bull1 <- c(46, 31, 37, 62, 30)
@@ -335,7 +335,7 @@ print(results)
 
 ```
 
-### (4)
+## (4)
 
 ```{r}
 mu_init <- mean(sapply(Y, mean))
@@ -343,18 +343,20 @@ sigma_tau2_init <- mean(sapply(Y, var))
 sigma_eps2_init <- var(conceptions)
 ```
 
-- We choose the initial values for the parameters \(\mu^{(0)}\) = `r mu_init` is the mean of overall mean, \(\sigma_{\tau}^2^{(0)}\) = `r sigma_tau2_init`is the mean of the variance for each groups, and \(\sigma_{\epsilon}^2^{(0)}\) = `r sigma_eps2_init`is the overall variance.
+- We choose the initial values for the parameters \(\mu^{(0)}\) = `r mu_init` is the mean of overall mean, \({\sigma_{\tau}^2}^{(0)}\) = `r sigma_tau2_init`is the mean of the variance for each groups, and \({\sigma_{\epsilon}^2}^{(0)}\) = `r sigma_eps2_init`is the overall variance.
 - The convergence threshold is set to `r epsilon` and the maximum number of iterations is set to `r max_iter`. We compare the change in the log likelihood between iterations to the convergence threshold to determine if the algorithm has converged.
 
-### (5) Plot the value of the estimate for the parameter versus the number of iterations 
+## (5) Plot the value of the estimate for the parameter versus the number of iterations 
 
 ```{r}
+par(mfrow=c(1,3))
 plot(results$iter_chain, results$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
 plot(results$iter_chain, results$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
 plot(results$iter_chain, results$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
 ```
 
 ```{r}
+par(mfrow=c(1,3))
 results_2 <- EMAlgorithm(Y, n, 100, 1, 1, epsilon, max_iter)
 plot(results_2$iter_chain, results_2$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
 plot(results_2$iter_chain, results_2$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
@@ -364,5 +366,63 @@ results_3 <- EMAlgorithm(Y, n, 50, 100, 100, epsilon, max_iter)
 plot(results_3$iter_chain, results_3$mu_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of mu vs. Iteration")
 plot(results_3$iter_chain, results_3$sigma_tau2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_tau2 vs. Iteration")
 plot(results_3$iter_chain, results_3$sigma_eps2_chain, type = "l", xlab = "Iteration", ylab = "Estimate", main = "Estimate of sigma_eps2 vs. Iteration")
-
 ```
+
+- We can see for all initial values, the estimates of the parameters converge to stable values after a few iterations. 
+- For the proper initial values, the estimates converge faster and to the correct values.
+
+## (6) Use a nonparametric bootstrap to provide standard error estimates for each of parameters
+```{r}
+# Nonparametric bootstrap
+bootstrap <- function(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter, B) {
+  N <- length(n)
+  mu_boot <- numeric(B)
+  sigma_tau2_boot <- numeric(B)
+  sigma_eps2_boot <- numeric(B)
+  
+  for (i in 1:B) {
+    # Sample with replacement
+    Y_boot <- lapply(1:N, function(j) sample(Y[[j]], n[j], replace = TRUE))
+    
+    # Run the EM algorithm
+    results_boot <- EMAlgorithm(Y_boot, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter)
+    mu_boot[i] <- results_boot$mu
+    sigma_tau2_boot[i] <- results_boot$sigma_tau2
+    sigma_eps2_boot[i] <- results_boot$sigma_eps2
+  }
+  
+  return(list(mu_boot = mu_boot, sigma_tau2_boot = sigma_tau2_boot, sigma_eps2_boot = sigma_eps2_boot))
+}
+
+# Set the number of bootstrap samples
+B <- 1000
+boot_results <- bootstrap(Y, n, mu_init, sigma_tau2_init, sigma_eps2_init, epsilon, max_iter, B)
+```
+
+- The number of bootstrap samples is set to `r B`. We sample with replacement from the original data and run the EM algorithm on each bootstrap sample to obtain estimates of the parameters.
+- Starting values for the EM algorithm are the same as before: \(\mu^{(0)}\) = `r mu_init`, \({\sigma_{\tau}^2}^{(0)}\) = `r sigma_tau2_init`, and \({\sigma_{\epsilon}^2}^{(0)}\) = `r sigma_eps2_init`.
+
+```{r}
+# Standard error estimates
+mu_se <- sd(boot_results$mu_boot)
+sigma_tau2_se <- sd(boot_results$sigma_tau2_boot)
+sigma_eps2_se <- sd(boot_results$sigma_eps2_boot)
+```
+- The standard error estimates for the parameters are:
+  - Standard error for \(\mu\): `r mu_se`
+  - Standard error for \(\sigma_{\tau}^2\): `r sigma_tau2_se`
+  - Standard error for \(\sigma_{\epsilon}^2\): `r sigma_eps2_se`
+```{r}
+# Approximate confidence intervals
+alpha <- 0.05
+mu_ci <- quantile(boot_results$mu_boot, c(alpha/2, 1 - alpha/2))
+sigma_tau2_ci <- quantile(boot_results$sigma_tau2_boot, c(alpha/2, 1 - alpha/2))
+sigma_eps2_ci <- quantile(boot_results$sigma_eps2_boot, c(alpha/2, 1 - alpha/2))
+```
+
+- Confidence intervals for the parameters at the 95% level are:
+  - Confidence interval for \(\mu\): (`r mu_ci[1]`, `r mu_ci[2]`)
+  - Confidence interval for \(\sigma_{\tau}^2\): (`r sigma_tau2_ci[1]`, `r sigma_tau2_ci[2]`)
+  - Confidence interval for \(\sigma_{\epsilon}^2\): (`r sigma_eps2_ci[1]`, `r sigma_eps2_ci[2]`)
+
+
