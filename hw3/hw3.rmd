@@ -1,7 +1,9 @@
 ---
 title: HW3
 author: Zhenhua Wang
-output: pdf_document
+output:
+  pdf_document:
+    extra_dependencies: ["multirow"]
 ---
 
 # Problem 1
