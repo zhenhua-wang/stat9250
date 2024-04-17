@@ -3,7 +3,7 @@ title: HW3
 author: Zhenhua Wang
 output:
   pdf_document:
-    extra_dependencies: ["multirow"]
+    extra_dependencies: ["multirow", "algorithm", "algpseudocode"]
 ---
 
 # Problem 1
@@ -177,7 +177,12 @@ Following table shows the results obtained from the three algorithms. For consis
 \end{center}
 
 # Problem 2
+## (a)
 
+
+## (b)
+
+## (c)
 
 # Problem 3
 ## (a)
