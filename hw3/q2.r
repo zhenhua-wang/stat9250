@@ -24,9 +24,11 @@ for (i in 1:epoch) {
     delta_linear <- mean(resid * X[, j])
     ## proceed with the negative direction
     if (delta_linear < -lambda) {
-      beta[j] <- delta_linear + lambda / 2
+      beta[j] <- delta_linear + lambda
     } else if (delta_linear > lambda) {
-      beta[j] <- delta_linear - lambda / 2
+      beta[j] <- delta_linear - lambda
+    } else {
+      beta[j] <- 0
     }
     ## restore full residual
     resid <- resid - X[, j] * beta[j]
@@ -37,12 +39,16 @@ for (i in 1:epoch) {
   if ((length(loss) > 1) && (abs(loss[i] - loss[i - 1]) < eps)) break
 }
 
+## result
 plot(loss, type = "l")
 beta <- matrix(beta, P, 1)
 rownames(beta) <- colnames(X)
 rownames(beta)[1] <- "(intercept)"
 beta
 
+## compare with glmnet
 library(glmnet)
 model <- glmnet(X[, 2:10], Y, alpha = 1, lambda = lambda)
 coef(model)
+beta <- Matrix(coef(model), sparse = FALSE)
+t(Y - X%*%beta) %*% (Y - X%*%beta) + lambda * sum(abs(beta))
