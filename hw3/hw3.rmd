@@ -178,7 +178,26 @@ Following table shows the results obtained from the three algorithms. For consis
 
 # Problem 2
 ## (a)
-
+\begin{algorithm}
+\caption{Coordinate Descent for Lasso Regression}
+\begin{algorithmic}[1]
+\State Initialize $\boldsymbol{\beta} \gets \mathbf{0}$
+\State Normalize $X$ and $y$
+\While{not converged}
+    \For{$j = 1$ to $p$}
+        \State Compute the partial derivative w.r.t. jth feature $\rho_j \gets \sum_{i=1}^n x_{ij} (Y_i - \sum_{i \neq j} x_{ir} \beta_r) + \beta_j \sum_{i=1}^n X_{ij}^2$
+        \If{$\rho_j < -\lambda$}
+            \State $\beta_j \gets \rho_j + \lambda$
+        \ElsIf{$\rho_j > \lambda$}
+            \State $\beta_j \gets \rho_j - \lambda$
+        \Else
+            \State $\beta_j \gets 0$
+        \EndIf
+    \EndFor
+\EndWhile
+\State \Return $\beta$
+\end{algorithmic}
+\end{algorithm}
 
 ## (b)
 
