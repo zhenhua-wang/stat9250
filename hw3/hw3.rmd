@@ -6,8 +6,6 @@ output: pdf_document
 
 # Problem 1
 
-# Problem 1
-
 
 ```{r}
 load("H:/My Drive/Simulations class/Homeworks/HW3_shalini/GPD_samples.RData")
@@ -175,6 +173,8 @@ Following table shows the results obtained from the three algorithms. For consis
 \hline
 \end{tabular}
 \end{center}
+
+# Problem 2
 
 
 # Problem 3
