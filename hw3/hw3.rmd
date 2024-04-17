@@ -159,22 +159,22 @@ Used optim to obtained the estimators from the BFGS algorithm. We provided the n
 
 Following table shows the results obtained from the three algorithms. For consistency across the different methods, initial values for $\sigma$ and $\xi$ were set as 1 and 0.1 respectively. 
 
-```{=latex}
 \begin{center}
-\begin{tabular}{ |c|c|c|c|c| } 
+\begin{tabular}{ |c|c|c|c|c| }
 \hline
- & parameter & MLE & CI & No of Iterations \\
+ & Parameter & MLE & CI & No of Iterations \\
 \hline
-\multirow{}{}{Newton-Raphson} & \sigma & 1.1954  & (0.9244,1.4664) & 19\\ 
-& \xi & 0.2557599 & (0.0569, 0.4546) & 19 \\ 
-\multirow{}{}{BFGS} & \sigma & 1.1953947 & (0.8696,1.5212) & 35\\ 
-& \xi & 0.2557616 & (0.0452,0.4664) & 35 \\ 
-\multirow{}{}{BFGS} & \sigma & 1.1953959 & (0.8696,1.5212) & 249\\ 
-& \xi & 0.2557598 & ( 0.0452, 0.4664) & 249 \\ 
+\multirow{2}{*}{Newton-Raphson} & \(\sigma\) & 1.1954  & (0.9244, 1.4664) & 19\\
+& \(\xi\) & 0.2557599 & (0.0569, 0.4546) & 19 \\
+\hline
+\multirow{2}{*}{BFGS} & \(\sigma\) & 1.1953947 & (0.869619, 1.521170) & 35\\
+& \(\xi\) & 0.2557616 & (0.0452, 0.4664) & 35 \\
+\hline
+\multirow{2}{*}{BFGS} & \(\sigma\) & 1.1953959 & (0.869620, 1.521172) & 249\\
+& \(\xi\) & 0.2557598 & (0.0451622, 0.466358) & 249 \\
 \hline
 \end{tabular}
 \end{center}
-```
 
 
 # Problem 3
