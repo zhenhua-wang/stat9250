@@ -24,7 +24,7 @@ jacobian <- function(Y, X, beta) {
 hessian <- function(Y, X, beta) {
   pi <- sigmoid(X %*% beta)
   W <- diag(drop(pi * (1 - pi)))
-  t(X) %*% W %*% X + diag(rep(1e-4, ncol(X)))
+  t(X) %*% W %*% X + diag(rep(1e-8, ncol(X)))
 }
 
 # using gradient descent
@@ -58,14 +58,18 @@ newton_raphson <- function(Y, X, beta_init,
   loss <- c()
   for (t in 1:epoch) {
     # Sample minibatch
-    indices <- sample(1:nrow(X), batch_size, replace = FALSE)
-    X_batch <- X[indices, ]
-    Y_batch <- Y[indices]
-    ## fitting
-    beta <- beta -
-      solve(hessian(Y_batch, X_batch, beta)) %*%
-      jacobian(Y_batch, X_batch, beta)
-    loss[t] <- logloss(Y_batch, X_batch, beta) / length(indices)
+    indices <- sample(1:nrow(X), nrow(X), replace = FALSE)
+    num_batches <- floor(nrow(X) / batch_size)
+    for (i in 1:num_batches) {
+      batch_idx <- indices[((i-1)*batch_size + 1):(i * batch_size)]
+      X_batch <- X[batch_idx, ]
+      Y_batch <- Y[batch_idx]
+      ## fitting
+      beta <- beta -
+        solve(hessian(Y_batch, X_batch, beta)) %*%
+        jacobian(Y_batch, X_batch, beta)
+    }
+    loss[t] <- logloss(Y_batch, X_batch, beta) / batch_size
     if (t > 1 && abs(loss[t] - loss[t-1]) < eps) break
   }
   return(list(loss = loss, beta = beta))
@@ -137,10 +141,11 @@ print(paste0("best alpha is ", alpha_best))
 start.time <- Sys.time()
 ## result <- gradient_descient(Y_train, X_train,
 ##   rep(0, 7), epoch = 1000, alpha = alpha_best, batch_size = 10000)
+beta_init <- rep(0, 7)#rnorm(7, 0, 0.01)
 result <- newton_raphson(Y_train, X_train,
-  rep(0, 7), epoch = 1000)
+  beta_init, epoch = 1000, eps = 1e-4, batch_size = 1000)
 end.time <- Sys.time()
-print(sprintf("running time: %.3f secs", end.time - start.time))
+print(end.time - start.time)
 plot(result$loss, type = "l")
 
 ## result
@@ -149,3 +154,4 @@ Y_pred <- predict_label(X_test, result$beta, optimal_threshold)
 conf_mat <- confusionMatrix(factor(Y_pred), factor(Y_test))
 conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_pred)
+result$beta
