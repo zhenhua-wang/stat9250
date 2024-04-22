@@ -97,6 +97,38 @@ accuracy <- function(Y, Y_pred) {
   mean(Y == Y_pred)
 }
 
+## bootstrap
+bootstrap <- function(optim_func, num_boot,
+                      Y, X, beta_init,
+                      batch_size = 1000,
+                      alpha = 0.01, lambda = 0.01,
+                      epoch = 10000, eps = 1e-3) {
+  model_list <- list()
+  n <- nrow(X)
+  for (i in 1:num_boot) {
+    sample_indices <- sample(1:n, n, replace = TRUE)  # Sampling with replacement
+    X_boot <- X[sample_indices, ]
+    Y_boot <- Y[sample_indices]
+    model <- optim_func(Y_boot, X_boot, beta_init,
+      batch_size = 1000,
+      epoch = 10000, eps = 1e-3)
+    model_list[[i]] <- model
+    cat(i, "\r")
+  }
+  return(model_list)
+}
+
+bootstrap_CI <- function(result_boot) {
+  num_param <- length(result_boot[[1]]$beta)
+  num_boot <- length(result_boot)
+  params <- matrix(NA, num_boot, num_param)
+  for (i in 1:num_boot) {
+    params[i, ] <- result_boot[[i]]$beta
+  }
+  return(list(beta_mean = apply(params, 2, mean),
+    beta_CI = apply(params, 2, quantile, c(0.025, 0.975))))
+}
+
 ## * analysis using Newton-Raphson
 ## load data
 Y <- heart$HeartDisease
@@ -121,7 +153,7 @@ start.time <- Sys.time()
 ##   rep(0, 7), epoch = 1000, alpha = alpha_best, batch_size = 10000)
 beta_init <- rep(0, 7)#rnorm(7, 0, 0.01)
 result <- newton_raphson(Y_train, X_train,
-  beta_init, epoch = 1000, eps = 1e-4, batch_size = 1000)
+  beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 end.time <- Sys.time()
 print(end.time - start.time)
 plot(result$loss, type = "l")
@@ -133,6 +165,18 @@ conf_mat <- confusionMatrix(factor(Y_pred), factor(Y_test))
 conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_pred)
 result$beta
+
+## result_boot <- bootstrap(newton_raphson, 100, Y_train, X_train,
+##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
+## save(result_boot, file = "./data/newton.RData")
+load("./data/newton.RData")
+beta_boot <- bootstrap_CI(result_boot)
+optimal_threshold <- get_optimal_threshold(Y_test, X_test, beta_boot$beta_mean)
+Y_boot <- predict_label(X_test, beta_boot$beta_mean, optimal_threshold)
+conf_mat <- confusionMatrix(factor(Y_boot), factor(Y_test))
+conf_mat$byClass["Specificity"]
+accuracy(Y_test, Y_boot)
+beta_boot$beta_mean
 
 ## * analysis using Gradient descent
 ## choose parameters
