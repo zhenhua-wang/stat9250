@@ -181,26 +181,3 @@ beta_boot$beta_mean
 
 ## roc
 plot(roc(Y_test, predict_prob(X_test, beta_boot$beta_mean)))
-
-## * analysis using Gradient descent
-## choose parameters
-shuffled_indices <- sample(nrow(X_train))
-val_idx <- shuffled_indices[1:round(0.3 * nrow(X_train))]
-X_val <- X_train[val_idx, ]
-Y_val <- Y_train[val_idx]
-X_valtrain <- X_train[-val_idx, ]
-Y_valtrain <- Y_train[-val_idx]
-alpha_list <- c(0.01, 0.03, 0.05, 0.08, 0.01, 0.05, 0.1)
-spec_list <- c()
-for (alpha in alpha_list) {
-  val_result <-
-    gradient_descient(Y_valtrain, X_valtrain, rep(0, 7),
-      epoch = 1000, alpha = alpha, batch_size = 1000)
-  optimal_threshold <- get_optimal_threshold(Y_val, X_val, val_result$beta)
-  Y_pred <- predict_label(X_test, val_result$beta, optimal_threshold)
-  conf_mat <- confusionMatrix(factor(Y_pred), factor(Y_test))
-  spec_list <- c(spec_list, conf_mat$byClass["Specificity"])
-  cat(alpha, "\r")
-}
-alpha_best <- alpha_list[which.max(spec_list)]
-print(paste0("best alpha is ", alpha_best))
