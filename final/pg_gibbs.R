@@ -1,4 +1,4 @@
-load("/home/kinux/Documents/9250/final/heart.RData")
+load("/Users/kongzewei/Documents/stat9250/final/data/heart.RData")
 
 library(MASS)  # for mvtnorm functions
 library(Matrix)  # for sparse matrix operations
@@ -6,18 +6,7 @@ library(BayesLogit)  # Polya-Gamma sampling
 library(caret)  # for confusion matrix
 library(pROC)  # for AUC
 
-# Splite with training and test
-set.seed(123)
-train_index <- sample(1:nrow(heart), nrow(heart) * 0.7)
-train <- heart[train_index,]
-test <- heart[-train_index,]
-
-# Gibbs sampling
-X <- model.matrix(~., data=train[,2:3])
-Y <- train$HeartDisease
-Z_sex <- model.matrix(~ factor(Sex) - 1, data=train)
-Z_smoke <- model.matrix(~ factor(Smoking) - 1, data=train)
-
+# Build Gibbs Function
 GibbsSamplerLogit <- function(X, Y, Z_u, Z_v, nburn, nsim, nthin, a = 0.1, b = 0.1) {
   N <- length(Y)
   p <- dim(X)[2]
@@ -98,15 +87,39 @@ GibbsSamplerLogit <- function(X, Y, Z_u, Z_v, nburn, nsim, nthin, a = 0.1, b = 0
   list(Beta.chain = Beta.chain, U.chain = U.chain, Sigma2_u.chain = Sigma2_u.chain, Mu.chain = Mu.chain, V.chain = V.chain, Sigma2_v.chain = Sigma2_v.chain)
 }
 
-nsim <- 1000
+# Splite with training and test
+train_index <- train_idx
+train <- heart[train_index,]
+test <- heart[-train_index,]
+
+# Gibbs sampling
+X <- model.matrix(~., data=train[,2:3])
+Y <- train$HeartDisease
+Z_sex <- model.matrix(~ factor(Sex) - 1, data=train)
+Z_smoke <- model.matrix(~ factor(Smoking) - 1, data=train)
+
+nsim <- 10000
 nburn <- 1000
 nthin <- 1
 t <- system.time(example_results <- GibbsSamplerLogit(X, Y, Z_sex, Z_smoke, nburn, nsim, nthin))
+par(mfrow=c(2,2))
 plot(example_results$Beta.chain[1,], type="l", xlab="Iteration", ylab="Beta1")
 plot(example_results$Beta.chain[2,], type="l", xlab="Iteration", ylab="Beta2")
+plot(example_results$Beta.chain[3,], type="l", xlab="Iteration", ylab="Beta3")
 plot(example_results$Mu.chain[1,], type="l", xlab="Iteration", ylab="Mu1")
-plot(example_results$Mu.chain[2,], type="l", xlab="Iteration", ylab="Mu2")
 
+plot(example_results$U.chain[1,], type="l", xlab="Iteration", ylab="U1")
+plot(example_results$U.chain[2,], type="l", xlab="Iteration", ylab="U2")
+plot(example_results$V.chain[1,], type="l", xlab="Iteration", ylab="V1")
+plot(example_results$V.chain[2,], type="l", xlab="Iteration", ylab="V2")
+acf(example_results$Beta.chain[2,])
+acf(example_results$Beta.chain[3,])
+acf(example_results$Mu.chain[1,])
+acf(example_results$Mu.chain[2,])
+
+# posterior interval
+CI_beta1 <- quantile(example_results$Beta.chain[1,], c(0.025, 0.975))
+CI_beta2 <- quantile(example_results$Beta.chain[2,], c(0.025, 0.975))
 
 # Compute the predicted probabilities
 predicted_probabilities <- plogis(rowMeans(example_results$Mu.chain))
@@ -116,6 +129,7 @@ roc_obj <- roc(Y, predicted_probabilities)
 # Plot ROC curve
 plot(roc_obj, main="ROC Curve", col="#1c61b6")
 abline(a=0, b=1, col="red")  # Adding reference line
+# Calculate the optimal threshold by Youden's Index
 # Youden's Index
 optimal_idx <- which.max(roc_obj$sensitivities + roc_obj$specificities - 1)
 optimal_threshold <- roc_obj$thresholds[optimal_idx]
@@ -137,20 +151,6 @@ Y_test <- test$HeartDisease
 table <- table(Y_test, Yhat)
 rowMeans(example_results$U.chain)
 rowMeans(example_results$V.chain)
-# Calculating FNR
-FN <- table[1,2] # Predicted 0 while actual was 1
-TP <- table[2,2] # Predicted 1 while actual was 1
-
-# Calculating FNR
-FNR <- FN / (FN + TP)
-print(FNR)
-
-# Calculating FPR
-FP <- table[2,1] # Predicted 1 while actual was 0 
-TN <- table[1,1] # Predicted 0 while actual was 0
-
-FPR <- FP / (FP + TN)
-print(FPR)
 
 conf_mat <- confusionMatrix(factor(Yhat), factor(Y_test))
 
@@ -168,3 +168,5 @@ conf_mat_logit <- confusionMatrix(factor(logit_Yhat), factor(Y_test))
 print(conf_mat_logit$byClass)  # Precision, Recall, F1, Sensitivity, Specificity
 print(conf_mat_logit$overall['Accuracy'])  # Accuracy
 print(paste("AUC:", pROC::auc(pROC::roc(Y_test, logit_prob))))  # AUC
+
+save.image("./pg_gibbs.RData")
