@@ -150,9 +150,7 @@ X_test <- X_test[, feature_idx]
 
 ## training
 start.time <- Sys.time()
-## result <- gradient_descient(Y_train, X_train,
-##   rep(0, 7), epoch = 1000, alpha = alpha_best, batch_size = 10000)
-beta_init <- rep(0, length(feature_idx))#rnorm(7, 0, 0.01)
+beta_init <- rep(0, length(feature_idx))
 result <- newton_raphson(Y_train, X_train,
   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 end.time <- Sys.time()
@@ -166,6 +164,8 @@ conf_mat <- confusionMatrix(factor(Y_pred), factor(Y_test))
 conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_pred)
 result$beta
+
+plot(roc(Y_test, predict_prob(X_test, result$beta)))
 
 ## bootstrap
 ## beta_init <- rep(0, length(feature_idx))
