@@ -15,7 +15,7 @@ logloss <- function(Y, X, beta) {
 }
 
 jacobian <- function(Y, X, beta) {
-  -t(X) %*% (Y - sigmoid(X %*% beta)) / length(Y)
+  -t(X) %*% (Y - sigmoid(X %*% beta))
 }
 
 hessian <- function(Y, X, beta) {
