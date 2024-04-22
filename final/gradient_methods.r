@@ -129,6 +129,22 @@ bootstrap_CI <- function(result_boot) {
     beta_CI = apply(params, 2, quantile, c(0.025, 0.975))))
 }
 
+bootstrap_predict <- function(Y, X, result_boot) {
+  num_obs <- length(Y)
+  num_boot <- length(result_boot)
+  Y_pred_boot <- matrix(NA, num_boot, num_obs)
+  for (i in 1:num_boot) {
+    Y_pred_boot[i, ] <- predict_prob(X, result_boot[[i]]$beta)
+  }
+  Y_pred_prob <- apply(Y_pred_boot, 2, mean)
+  roc_result <- roc(Y, Y_pred_prob)
+  optimal_idx <-
+    which.max(roc_result$sensitivities + roc_result$specificities - 1)
+  threshold_best <- roc_result$thresholds[optimal_idx]
+  Y_pred <- ifelse(Y_pred_prob >= threshold_best, 1, 0)
+  return(Y_pred)
+}
+
 ## * analysis using Newton-Raphson
 ## load data
 Y <- heart$HeartDisease
@@ -171,10 +187,12 @@ result$beta
 ## result_boot <- bootstrap(newton_raphson, 100, Y_train, X_train,
 ##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 ## save(result_boot, file = "./data/newton.RData")
+
 load("./data/newton.RData")
 beta_boot <- bootstrap_CI(result_boot)
-optimal_threshold <- get_optimal_threshold(Y_test, X_test, beta_boot$beta_mean)
-Y_boot <- predict_label(X_test, beta_boot$beta_mean, optimal_threshold)
+beta_boot$beta_mean
+
+Y_boot <- bootstrap_predict(Y_test, X_test, result_boot)
 conf_mat <- confusionMatrix(factor(Y_boot), factor(Y_test))
 conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_boot)
