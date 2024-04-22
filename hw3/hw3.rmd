@@ -10,7 +10,7 @@ output:
 
 
 ```{r}
-load("H:/My Drive/Simulations class/Homeworks/HW3_shalini/GPD_samples.RData")
+load("./GPD_samples.RData")
 n <- length(samples)
 #min(samples)
 

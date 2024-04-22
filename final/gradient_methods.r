@@ -152,7 +152,7 @@ X_test <- X_test[, feature_idx]
 start.time <- Sys.time()
 beta_init <- rep(0, length(feature_idx))
 result <- newton_raphson(Y_train, X_train,
-  beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
+  beta_init, epoch = 1000, eps = 1e-4, batch_size = 1000)
 end.time <- Sys.time()
 print(end.time - start.time)
 plot(result$loss, type = "l")
