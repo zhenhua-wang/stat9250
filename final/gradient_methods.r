@@ -15,13 +15,13 @@ logloss <- function(Y, X, beta) {
 }
 
 jacobian <- function(Y, X, beta) {
-  -t(X) %*% (Y - sigmoid(X %*% beta))
+  -t(X) %*% (Y - sigmoid(X %*% beta)) / length(Y)
 }
 
 hessian <- function(Y, X, beta) {
   pi <- sigmoid(X %*% beta)
   W <- diag(drop(pi * (1 - pi)))
-  t(X) %*% W %*% X + diag(rep(1e-8, ncol(X)))
+  t(X) %*% W %*% X + diag(rep(1e-10, ncol(X)))
 }
 
 # using gradient descent
@@ -165,7 +165,9 @@ conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_pred)
 result$beta
 
-plot(roc(Y_test, predict_prob(X_test, result$beta)))
+result_roc <- roc(Y_test, predict_prob(X_test, result$beta))
+plot(result_roc)
+auc(result_roc)
 
 ## bootstrap
 ## beta_init <- rep(0, length(feature_idx))
