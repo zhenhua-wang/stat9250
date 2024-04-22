@@ -166,6 +166,8 @@ conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_pred)
 result$beta
 
+## bootstrap
+## beta_init <- rep(0, 7)
 ## result_boot <- bootstrap(newton_raphson, 100, Y_train, X_train,
 ##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 ## save(result_boot, file = "./data/newton.RData")
