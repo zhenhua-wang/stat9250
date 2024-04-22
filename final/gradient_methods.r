@@ -1,8 +1,6 @@
 setwd('~/Workspace/Course/stat9250/final/')
 load("./data/heart.RData")
 library(tidyverse)
-library(mltools)
-library(data.table)
 library(caret)
 library(pROC)
 
