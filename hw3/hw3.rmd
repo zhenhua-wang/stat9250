@@ -200,7 +200,7 @@ Following table shows the results obtained from the three algorithms. For consis
 \end{algorithm}
 
 ## (b)
-For the starting values, we follow the common practice to set all parameters to 0. The algorithm converges when the changes in loss function is less than a pre-specified threshold (e.g. 1e-4). Before fitting the data, we first center and scale both inputs and outputs, since Lasso regression is sensitive to the scale of the variables. We hold 30% of data for selecting the best $\lambda$ from [0.01, 0.05, 0.1, 0.3, 0.7, 0.9]. To get the final parameter estimates, we refit the entire data with the best $\lambda$.
+For the starting values, we follow the common practice in Lasso regression to set all parameters to 0. The algorithm converges when the changes in loss function is less than a pre-specified threshold (e.g. 1e-4). Before fitting the data, we first center and scale both inputs and outputs, since Lasso regression is sensitive to the scale of the variables. We hold 30% of data for selecting the best $\lambda$ from [0.01, 0.05, 0.1, 0.3, 0.7, 0.9]. To get the final parameter estimates, we refit the entire data with the best $\lambda$.
 
 ## (c)
 The best $\lambda$ is 0.1, and the corresponding estimated $\beta$. Our estimates are close to that obtained from glmnet package.
