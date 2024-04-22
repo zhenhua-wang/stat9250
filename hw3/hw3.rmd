@@ -210,10 +210,10 @@ The best $\lambda$ is 0.1, and the corresponding estimated $\beta$. Our estimate
 | Years       | 0                  | 0          |
 | Weight      | -0.1966053         | -0.2126499 |
 | Height      | 0.4166076          | 0.4364352  |
-| Chin        | 0                  |            |
-| Forearm     | 0                  |            |
-| Calf        | 0                  |            |
-| Pulse       | 0                  |            |
+| Chin        | 0                  | 0          |
+| Forearm     | 0                  | 0          |
+| Calf        | 0                  | 0          |
+| Pulse       | 0                  | 0          |
 | Diastol     | 0.2173898          | 0.2178290  |
 
 
