@@ -180,6 +180,9 @@ conf_mat$byClass["Specificity"]
 accuracy(Y_test, Y_boot)
 beta_boot$beta_mean
 
+## roc
+plot(roc(Y_test, predict_prob(X_test, beta_boot$beta_mean)))
+
 ## * analysis using Gradient descent
 ## choose parameters
 shuffled_indices <- sample(nrow(X_train))
