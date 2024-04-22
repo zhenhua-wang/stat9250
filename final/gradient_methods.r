@@ -97,7 +97,7 @@ accuracy <- function(Y, Y_pred) {
   mean(Y == Y_pred)
 }
 
-## * analysis using gradient descent
+## * analysis using Newton-Raphson
 ## load data
 Y <- heart$HeartDisease
 X <- heart %>% dplyr::select(-HeartDisease)
@@ -115,6 +115,26 @@ Y_train <- Y[train_idx]
 X_test <- X[-train_idx, ]
 Y_test <- Y[-train_idx]
 
+## training
+start.time <- Sys.time()
+## result <- gradient_descient(Y_train, X_train,
+##   rep(0, 7), epoch = 1000, alpha = alpha_best, batch_size = 10000)
+beta_init <- rep(0, 7)#rnorm(7, 0, 0.01)
+result <- newton_raphson(Y_train, X_train,
+  beta_init, epoch = 1000, eps = 1e-4, batch_size = 1000)
+end.time <- Sys.time()
+print(end.time - start.time)
+plot(result$loss, type = "l")
+
+## result
+optimal_threshold <- get_optimal_threshold(Y_test, X_test, result$beta)
+Y_pred <- predict_label(X_test, result$beta, optimal_threshold)
+conf_mat <- confusionMatrix(factor(Y_pred), factor(Y_test))
+conf_mat$byClass["Specificity"]
+accuracy(Y_test, Y_pred)
+result$beta
+
+## * analysis using Gradient descent
 ## choose parameters
 shuffled_indices <- sample(nrow(X_train))
 val_idx <- shuffled_indices[1:round(0.3 * nrow(X_train))]
@@ -136,22 +156,3 @@ for (alpha in alpha_list) {
 }
 alpha_best <- alpha_list[which.max(spec_list)]
 print(paste0("best alpha is ", alpha_best))
-
-## training
-start.time <- Sys.time()
-## result <- gradient_descient(Y_train, X_train,
-##   rep(0, 7), epoch = 1000, alpha = alpha_best, batch_size = 10000)
-beta_init <- rep(0, 7)#rnorm(7, 0, 0.01)
-result <- newton_raphson(Y_train, X_train,
-  beta_init, epoch = 1000, eps = 1e-4, batch_size = 1000)
-end.time <- Sys.time()
-print(end.time - start.time)
-plot(result$loss, type = "l")
-
-## result
-optimal_threshold <- get_optimal_threshold(Y_test, X_test, result$beta)
-Y_pred <- predict_label(X_test, result$beta, optimal_threshold)
-conf_mat <- confusionMatrix(factor(Y_pred), factor(Y_test))
-conf_mat$byClass["Specificity"]
-accuracy(Y_test, Y_pred)
-result$beta
