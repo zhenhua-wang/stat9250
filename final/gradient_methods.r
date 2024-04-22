@@ -1,5 +1,4 @@
 setwd('~/Workspace/Course/stat9250/final/')
-load("./data/heart.RData")
 library(tidyverse)
 library(caret)
 library(pROC)
@@ -144,11 +143,16 @@ bootstrap_predict <- function(Y, X, result_boot) {
 }
 
 ## * analysis using Newton-Raphson
+load("./data/heart.RData")
+feature_idx <- c(1, 2, 3, 5, 7)
+X_train <- X_train[, feature_idx]
+X_test <- X_test[, feature_idx]
+
 ## training
 start.time <- Sys.time()
 ## result <- gradient_descient(Y_train, X_train,
 ##   rep(0, 7), epoch = 1000, alpha = alpha_best, batch_size = 10000)
-beta_init <- rep(0, 7)#rnorm(7, 0, 0.01)
+beta_init <- rep(0, length(feature_idx))#rnorm(7, 0, 0.01)
 result <- newton_raphson(Y_train, X_train,
   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 end.time <- Sys.time()
@@ -164,7 +168,7 @@ accuracy(Y_test, Y_pred)
 result$beta
 
 ## bootstrap
-## beta_init <- rep(0, 7)
+## beta_init <- rep(0, length(feature_idx))
 ## result_boot <- bootstrap(newton_raphson, 100, Y_train, X_train,
 ##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 ## save(result_boot, file = "./data/newton.RData")
