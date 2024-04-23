@@ -161,7 +161,7 @@ auc(result_roc)
 ## bootstrap
 ## beta_init <- rep(0, ncol(X_train))
 ## result_boot <- bootstrap(newton_raphson, 100, Y_train, X_train,
-##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
+##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000, lambda = 0.05)
 ## save(result_boot, file = "./data/newton.RData")
 
 load("./data/newton.RData")
