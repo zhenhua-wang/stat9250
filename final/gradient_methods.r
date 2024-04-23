@@ -5,6 +5,13 @@ library(pROC)
 
 ## * methods
 # helper
+standardize <- function(matrix_data, col_min, col_max) {
+  # Standardize each column
+  norm_matrix <- sweep(matrix_data, 2, col_min, FUN = "-")
+  norm_matrix <- sweep(norm_matrix, 2, col_max - col_min, FUN = "/")
+  return(norm_matrix)
+}
+
 sigmoid <- function(Z) {
   1 / (1 + exp(-Z))
 }
@@ -14,41 +21,20 @@ logloss <- function(Y, X, beta) {
     t(1 - Y) %*% log(1 - sigmoid(X %*% beta))
 }
 
-jacobian <- function(Y, X, beta) {
-  -t(X) %*% (Y - sigmoid(X %*% beta)) / length(Y)
+jacobian <- function(Y, X, beta, lambda) {
+  -t(X) %*% (Y - sigmoid(X %*% beta)) + 2 * lambda * beta
 }
 
-hessian <- function(Y, X, beta) {
+hessian <- function(Y, X, beta, lambda) {
   pi <- sigmoid(X %*% beta)
   W <- diag(drop(pi * (1 - pi)))
-  t(X) %*% W %*% X + diag(rep(1e-8, ncol(X)))
-}
-
-# using gradient descent
-gradient_descient <- function(Y, X, beta_init,
-                              batch_size = 1000,
-                              alpha = 0.01, lambda = 0.01,
-                              epoch = 10000, eps = 1e-3) {
-  beta <- beta_init
-  loss <- c()
-  for (t in 1:epoch) {
-    # Sample minibatch
-    indices <- sample(1:nrow(X), batch_size, replace = FALSE)
-    X_batch <- X[indices, ]
-    Y_batch <- Y[indices]
-    ## fitting
-    beta <- beta -
-      alpha * jacobian(Y_batch, X_batch, beta) -
-      lambda * 2 * beta
-    loss[t] <- logloss(Y_batch, X_batch, beta) / length(indices)
-    if (t > 1 && abs(loss[t] - loss[t-1]) < eps) break
-  }
-  return(list(loss = loss, beta = beta))
+  t(X) %*% W %*% X + diag(rep(2 * lambda, ncol(X)))
 }
 
 # using Newton-Raphson
 newton_raphson <- function(Y, X, beta_init,
                            batch_size = 1000,
+                           lambda = 0.01,
                            epoch = 10000,
                            eps = 1e-4) {
   beta <- beta_init
@@ -63,8 +49,8 @@ newton_raphson <- function(Y, X, beta_init,
       Y_batch <- Y[batch_idx]
       ## fitting
       beta <- beta -
-        solve(hessian(Y_batch, X_batch, beta)) %*%
-        jacobian(Y_batch, X_batch, beta)
+        solve(hessian(Y_batch, X_batch, beta, lambda)) %*%
+        jacobian(Y_batch, X_batch, beta, lambda)
     }
     loss[t] <- logloss(Y_batch, X_batch, beta) / batch_size
     if (t > 1 && abs(loss[t] - loss[t-1]) < eps) break
@@ -144,13 +130,14 @@ bootstrap_predict <- function(Y, X, result_boot) {
 
 ## * analysis using Newton-Raphson
 load("./data/heart.RData")
-feature_idx <- c(1, 2, 3, 5, 7)
-X_train <- X_train[, feature_idx]
-X_test <- X_test[, feature_idx]
+X_min_cont <- apply(X_train[, 2:3], 2, min)
+X_max_cont <- apply(X_train[, 2:3], 2, max)
+X_train[, 2:3] <- standardize(X_train[, 2:3], X_min_cont, X_max_cont)
+X_test[, 2:3] <- standardize(X_test[, 2:3], X_min_cont, X_max_cont)
 
 ## training
 start.time <- Sys.time()
-beta_init <- rep(0, length(feature_idx))
+beta_init <- rep(0, ncol(X_train))
 result <- newton_raphson(Y_train, X_train,
   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 end.time <- Sys.time()
