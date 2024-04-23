@@ -93,8 +93,9 @@ bootstrap <- function(optim_func, num_boot,
     X_boot <- X[sample_indices, ]
     Y_boot <- Y[sample_indices]
     model <- optim_func(Y_boot, X_boot, beta_init,
-      batch_size = 1000,
-      epoch = 10000, eps = 1e-3)
+      batch_size = batch_size,
+      lambda = lambda,
+      epoch = epoch, eps = eps)
     model_list[[i]] <- model
     cat(i, "\r")
   }
@@ -140,7 +141,7 @@ X_test[, 2:3] <- standardize(X_test[, 2:3], X_min_cont, X_max_cont)
 start.time <- Sys.time()
 beta_init <- rep(0, ncol(X_train))
 result <- newton_raphson(Y_train, X_train,
-  beta_init, epoch = 100, eps = 1e-4, batch_size = 1000, lambda = 0.1)
+  beta_init, epoch = 100, eps = 1e-4, batch_size = 1000, lambda = 0.05)
 end.time <- Sys.time()
 print(end.time - start.time)
 plot(result$loss, type = "l")
