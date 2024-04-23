@@ -50,7 +50,7 @@ newton_raphson <- function(Y, X, beta_init,
       ## fitting
       beta <- beta -
         solve(hessian(Y_batch, X_batch, beta, lambda)) %*%
-        jacobian(Y_batch, X_batch, beta, lambda)
+        jacobian(Y_batch, X_batch, beta, lambda) / batch_size
     }
     loss[t] <- logloss(Y_batch, X_batch, beta) / batch_size
     if (t > 1 && abs(loss[t] - loss[t-1]) < eps) break
@@ -144,7 +144,7 @@ result <- newton_raphson(Y_train, X_train,
   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000, lambda = 0.05)
 end.time <- Sys.time()
 print(end.time - start.time)
-plot(result$loss, type = "l")
+plot(result$loss, type = "l", ylab = "Loss", xlab = "epoch")
 
 ## result
 optimal_threshold <- get_optimal_threshold(Y_test, X_test, result$beta)
