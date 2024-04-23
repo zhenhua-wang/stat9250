@@ -128,18 +128,19 @@ bootstrap_predict <- function(Y, X, result_boot) {
   return(Y_pred)
 }
 
-## * analysis using Newton-Raphson
+## * load data
 load("./data/heart.RData")
 X_min_cont <- apply(X_train[, 2:3], 2, min)
 X_max_cont <- apply(X_train[, 2:3], 2, max)
 X_train[, 2:3] <- standardize(X_train[, 2:3], X_min_cont, X_max_cont)
 X_test[, 2:3] <- standardize(X_test[, 2:3], X_min_cont, X_max_cont)
 
+## * analysis using Newton-Raphson
 ## training
 start.time <- Sys.time()
 beta_init <- rep(0, ncol(X_train))
 result <- newton_raphson(Y_train, X_train,
-  beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
+  beta_init, epoch = 100, eps = 1e-4, batch_size = 1000, lambda = 0.1)
 end.time <- Sys.time()
 print(end.time - start.time)
 plot(result$loss, type = "l")
@@ -157,7 +158,7 @@ plot(result_roc)
 auc(result_roc)
 
 ## bootstrap
-## beta_init <- rep(0, length(feature_idx))
+## beta_init <- rep(0, ncol(X_train))
 ## result_boot <- bootstrap(newton_raphson, 100, Y_train, X_train,
 ##   beta_init, epoch = 100, eps = 1e-4, batch_size = 1000)
 ## save(result_boot, file = "./data/newton.RData")
@@ -174,3 +175,24 @@ beta_boot$beta_mean
 
 ## roc
 plot(roc(Y_test, predict_prob(X_test, beta_boot$beta_mean)))
+
+## * parameter tuning
+shuffled_indices <- sample(nrow(X_train))
+val_idx <- shuffled_indices[1:round(0.3 * nrow(X_train))]
+X_val <- X_train[val_idx, ]
+Y_val <- Y_train[val_idx]
+X_valtrain <- X_train[-val_idx, ]
+Y_valtrain <- Y_train[-val_idx]
+alpha_list <- c(0.01, 0.03, 0.05, 0.08, 0.1, 0.3, 0.5, 0.8)
+acc_list <- c()
+for (alpha in alpha_list) {
+  val_result <-
+    newton_raphson(Y_valtrain, X_valtrain, rep(0, ncol(X_train)),
+      epoch = 100, lambda = alpha, batch_size = 1000)
+  optimal_threshold <- get_optimal_threshold(Y_val, X_val, val_result$beta)
+  Y_pred <- predict_label(X_test, val_result$beta, optimal_threshold)
+  acc_list <- c(acc_list, accuracy(Y_test, Y_pred))
+  cat(alpha, "\r")
+}
+alpha_best <- alpha_list[which.max(acc_list)]
+print(paste0("best alpha is ", alpha_best))
